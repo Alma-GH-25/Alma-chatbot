@@ -107,18 +107,24 @@ def llamar_deepseek(prompt):
             "model": "deepseek-chat",
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.7,
-            "max_tokens": 800
+            "max_tokens": 800,
+            "stream": False
         }
         
+        print(f"Llamando a DeepSeek API...")  # ✅ LOG
         response = requests.post(DEEPSEEK_URL, headers=headers, json=data, timeout=30)
+        
+        print(f"Status Code: {response.status_code}")  # ✅ LOG
+        print(f"Response: {response.text}")  # ✅ LOG
         
         if response.status_code == 200:
             return response.json()['choices'][0]['message']['content']
         else:
-            return "Entiendo que quieres conectar. Estoy aquí para escucharte. ¿Puedes contarme más sobre cómo te sientes? 🌱"
+            return f"Error en API: {response.status_code} - {response.text}"
             
     except Exception as e:
-        return "Veo que estás buscando apoyo. ¿Podrías contarme más sobre lo que necesitas en este momento? 💫"
+        print(f"Error llamando DeepSeek: {str(e)}")  # ✅ LOG
+        return f"Error de conexión: {str(e)}"
 
 def enviar_respuesta_twilio(mensaje, telefono):
     from twilio.rest import Client
