@@ -539,7 +539,7 @@ def llamar_deepseek(prompt):
             "model": "deepseek-chat",
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.7,
-            "max_tokens": 800,
+            "max_tokens": 400,
             "stream": False
         }
         
