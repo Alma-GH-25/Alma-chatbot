@@ -67,8 +67,8 @@ MENSAJE_SUSCRIPCION = f"""
 
 🏦 **Datos para depósito:**
    Banco: BBVA
-   CLABE: 0121 8000 1234 5678 90
-   Nombre: Alma Mindfulness SA de CV
+   CLABE: XXXX XXXX XXXX XXXX XX
+   Nombre: Alma - Mindfulness
    Monto: ${PRECIO_SUSCRIPCION_MENSUAL} MXN
 
 📱 **Una vez realizado el pago, envía de favor tu número telefónico y captura al {NUMERO_COMPROBANTES}**
@@ -79,11 +79,11 @@ MENSAJE_SUSCRIPCION = f"""
 """
 
 MENSAJE_INVITACION_SUSCRIPCION = f"""
-🌟 **Tu Trial Gratuito de Alma ha Concluido** 🌟
+🌟 **Tu experiencia inicial con Alma ha concluido** 🌟
 
 ¡Gracias por permitirme acompañarte en estos 21 días de crecimiento! 
 
-Para continuar con tu camino de mindfulness:
+No lo dudes, actua para seguir en este proceso.
 
 {MENSAJE_SUSCRIPCION}
 """
@@ -98,6 +98,54 @@ MENSAJE_SUSCRIPCION_ACTIVA = """
 🌱 Continúa tu camino de crecimiento y mindfulness con nosotros.
 
 *Recibirás recordatorios antes de que venza tu suscripción*
+"""
+
+MENSAJE_RECORDATORIO_7_DIAS = """
+🔔 **Recordatorio de Suscripción**
+
+📅 Tu suscripción de Alma vence en **7 días** ({fecha_vencimiento})
+
+Para renovar y evitar interrupciones en tu acompañamiento:
+• Envía "RENOVAR" para recibir los datos de pago
+• O contáctanos para cualquier duda
+
+🌱 *Tu bienestar emocional es nuestra prioridad*
+"""
+
+MENSAJE_RECORDATORIO_3_DIAS = """
+⚠️ **Recordatorio Urgente**
+
+📅 Tu suscripción de Alma vence en **3 días** ({fecha_vencimiento})
+
+🔄 Renueva ahora para mantener tu acceso continuo:
+• Envía "RENOVAR" para datos de pago
+• Tu espacio seguro te espera
+
+💫 *No pierdas tu ritmo de crecimiento*
+"""
+
+MENSAJE_VENCIMIENTO_HOY = """
+🚨 **Suscripción por Vencer Hoy**
+
+📅 **Hoy {fecha_vencimiento}** vence tu suscripción de Alma
+
+⚡ Actúa ahora para mantener tu acceso:
+• Envía "RENOVAR" inmediatamente
+• Continúa tu transformación sin interrupciones
+
+🌿 *Tu camino de mindfulness es importante*
+"""
+
+MENSAJE_SUSCRIPCION_VENCIDA = """
+❌ **Suscripción Vencida**
+
+Tu acceso premium a Alma ha expirado.
+
+Para reactivar tu suscripción y continuar con tu acompañamiento:
+• Envía "SUSCRIBIR" para renovar
+• O contáctanos para asistencia
+
+🌱 *Estaremos aquí cuando decidas retomar tu camino*
 """
 
 # --- PROMPT MEJORADO CON REGLAS ESTRICTAS ---
@@ -132,6 +180,12 @@ Eres "Alma" - chatbot especializado en mindfulness y apoyo emocional. NO eres te
 - Foco: {foco_personalizado}
 - Lenguaje: {lenguaje_personalizado}
 - Metáfora: {metafora_personalizada}
+
+**ESTADO SUSCRIPCIÓN:**
+- Trial activo: {trial_activo}
+- Días restantes trial: {dias_restantes_trial_val}
+- Usuario suscrito: {usuario_suscrito_val}
+- Días restantes suscripción: {dias_restantes_suscripcion_val}
 
 **ESTADO SESIÓN:**
 - Tiempo transcurrido: {tiempo_transcurrido} minutos
@@ -204,6 +258,60 @@ def dias_restantes_suscripcion(user_phone):
     hoy = datetime.now().date()
     
     return max(0, (fecha_vencimiento - hoy).days)
+
+# --- SISTEMA DE RECORDATORIOS AUTOMÁTICOS ---
+
+def ejecutar_recordatorios_automaticos():
+    """Envía recordatorios automáticos de suscripción."""
+    def tarea_background():
+        while True:
+            try:
+                hoy = datetime.now().date()
+                print(f"🔔 Verificando recordatorios para {hoy}")
+                
+                for user_phone, sub in paid_subscriptions.items():
+                    if sub['estado'] != 'activo':
+                        continue
+                        
+                    fecha_vencimiento = datetime.strptime(sub['fecha_vencimiento'], '%Y-%m-%d').date()
+                    dias_restantes = (fecha_vencimiento - hoy).days
+                    
+                    # Recordatorio a 7 días
+                    if dias_restantes == 7 and not sub['recordatorio_7d_enviado']:
+                        mensaje = MENSAJE_RECORDATORIO_7_DIAS.format(
+                            fecha_vencimiento=fecha_vencimiento.strftime('%d/%m/%Y')
+                        )
+                        enviar_respuesta_twilio(mensaje, user_phone)
+                        sub['recordatorio_7d_enviado'] = True
+                        print(f"📤 Recordatorio 7d enviado a {user_phone}")
+                        
+                    # Recordatorio a 3 días  
+                    elif dias_restantes == 3 and not sub['recordatorio_3d_enviado']:
+                        mensaje = MENSAJE_RECORDATORIO_3_DIAS.format(
+                            fecha_vencimiento=fecha_vencimiento.strftime('%d/%m/%Y')
+                        )
+                        enviar_respuesta_twilio(mensaje, user_phone)
+                        sub['recordatorio_3d_enviado'] = True
+                        print(f"📤 Recordatorio 3d enviado a {user_phone}")
+                        
+                    # Recordatorio el día del vencimiento
+                    elif dias_restantes == 0 and not sub['recordatorio_0d_enviado']:
+                        mensaje = MENSAJE_VENCIMIENTO_HOY.format(
+                            fecha_vencimiento=fecha_vencimiento.strftime('%d/%m/%Y')
+                        )
+                        enviar_respuesta_twilio(mensaje, user_phone)
+                        sub['recordatorio_0d_enviado'] = True
+                        print(f"📤 Recordatorio 0d enviado a {user_phone}")
+                
+                time.sleep(3600)  # Verificar cada hora
+            except Exception as e:
+                print(f"❌ Error en recordatorios automáticos: {e}")
+                time.sleep(300)
+    
+    # Iniciar en segundo plano
+    thread = Thread(target=tarea_background, daemon=True)
+    thread.start()
+    print("✅ Sistema de recordatorios automáticos INICIADO")
 
 # --- SISTEMA DE TRIAL Y ACCESO ---
 
@@ -373,7 +481,7 @@ NO ofrezcas horóscopo bajo ninguna circunstancia."""
     subscription = get_user_subscription(user_phone)
     trial_activo = verificar_trial_activo(subscription)
     dias_restantes_trial_val = dias_restantes_trial(subscription)
-    usuario_suscrito = verificar_suscripcion_activa(user_phone)
+    usuario_suscrito_val = verificar_suscripcion_activa(user_phone)
     dias_restantes_suscripcion_val = dias_restantes_suscripcion(user_phone)
     
     # Determinar estatus de sesión
@@ -399,9 +507,9 @@ NO ofrezcas horóscopo bajo ninguna circunstancia."""
         lenguaje_personalizado=contexto['lenguaje'],
         metafora_personalizada=contexto['metafora'],
         trial_activo=trial_activo,
-        dias_restantes_trial=dias_restantes_trial_val,
-        usuario_suscrito=usuario_suscrito,
-        dias_restantes_suscripcion=dias_restantes_suscripcion_val,
+        dias_restantes_trial_val=dias_restantes_trial_val,
+        usuario_suscrito_val=usuario_suscrito_val,
+        dias_restantes_suscripcion_val=dias_restantes_suscripcion_val,
         tiempo_transcurrido=tiempo_transcurrido_minutos,
         estatus_sesion=estatus_sesion,
         crisis_count=user_session['crisis_count'],
@@ -650,12 +758,16 @@ def health_check():
     }
 
 if __name__ == '__main__':
-    print("🤖 Alma Chatbot INICIADO - Sistema Completo con Reglas Estrictas")
+    # Iniciar sistema de recordatorios automáticos
+    ejecutar_recordatorios_automaticos()
+    
+    print("🤖 Alma Chatbot INICIADO - Sistema Completo con Recordatorios Automáticos")
     print(f"📞 Número comprobantes: {NUMERO_COMPROBANTES}")
     print("🎯 Características MEJORADAS:")
     print("   ✅ Restricción horóscopo solo para mujeres")
     print("   ✅ Reglas estrictas de duración (30min + 15flex)")
     print("   ✅ Estructura conversacional 40-30-30")
     print("   ✅ Sistema completo de suscripciones")
+    print("   ✅ Recordatorios automáticos (7d, 3d, 0d)")
     print("   ✅ Debug logs mejorados")
     app.run(host='0.0.0.0', port=5000, debug=False)
