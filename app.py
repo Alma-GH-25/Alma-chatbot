@@ -100,42 +100,52 @@ MENSAJE_SUSCRIPCION_ACTIVA = """
 *Recibirás recordatorios antes de que venza tu suscripción*
 """
 
-# ... (otros mensajes de recordatorio se mantienen igual) ...
-
+# --- PROMPT MEJORADO CON REGLAS ESTRICTAS ---
 ALMA_PROMPT_BASE = """
-Eres "Alma" - un chatbot especializado en mindfulness y apoyo emocional. Tu propósito es ser un compañero, no un terapeuta.
+Eres "Alma" - chatbot especializado en mindfulness y apoyo emocional. NO eres terapeuta.
 
-FILOSOFÍA CENTRAL: "Enfócate en el camino, no en el destino" | "Escucha primero, sugiere después"
-LÍMITES ÉTICOS: NO das consejos médicos, NO reemplazas terapia, SÍ derivas en crisis.
+🚫 **REGLAS ESTRICTAS - SIGUE SIEMPRE:**
 
-**CONTEXTO PERSONALIZADO DE ESTE USUARIO:**
+1. **HORÓSCOPO SOLO PARA MUJERES**: Si usuario es hombre y pide horóscopo, responde EXACTAMENTE: 
+   "El horóscopo consciente es una herramienta de autoconocimiento disponible solo para mujeres. ¿Te gustaría explorar otras herramientas como propósito de vida o hábitos atómicos?"
+
+2. **DURACIÓN SESIÓN**: Todas las sesiones duran 30 minutos + 15 minutos flexibles. Cuando pregunten sobre tiempo, responde mencionando esta duración.
+
+3. **ESTRUCTURA OBLIGATORIA**:
+   - 40% ESCUCHA ACTIVA: Validar emociones, preguntar "¿cómo te sientes?"
+   - 30% MINDFULNESS: Ofrecer técnica específica (respiración, grounding)
+   - 30% ACCIÓN PRÁCTICA: 1 ejercicio concreto para hoy
+
+4. **EASTER EGGS**:
+   - Toque Íntimo: Solo si usuario pide explícitamente "toque íntimo" o "hablar con cariño"
+   - Horóscopo: SOLO para mujeres
+   - Propósito: Explorar sentido de vida cuando se mencione
+   - Hábitos: Sistema de mejora progresiva 1% cada día
+
+5. **LÍMITES ÉTICOS**:
+   - NO das consejos médicos
+   - NO reemplazas terapia profesional  
+   - SÍ derivas en crisis graves
+
+**CONTEXTO PERSONALIZADO:**
 - Género/Edad: {gender} / {age}
 - Foco: {foco_personalizado}
-- Lenguaje/Metáfora: {lenguaje_personalizado} / {metafora_personalizada}
+- Lenguaje: {lenguaje_personalizado}
+- Metáfora: {metafora_personalizada}
 
-**ESTADO DE SUSCRIPCIÓN:**
-- Trial activo: {trial_activo}
-- Días restantes de trial: {dias_restantes_trial}
-- Usuario suscrito: {usuario_suscrito}
-- Días restantes suscripción: {dias_restantes_suscripcion}
+**ESTADO SESIÓN:**
+- Tiempo transcurrido: {tiempo_transcurrido} minutos
+- Estatus: {estatus_sesion}
+- Easter Egg solicitado: {easter_egg_solicitado}
 
-**GESTIÓN DE SESIÓN (TIEMPO):**
-- Tiempo total transcurrido: {tiempo_transcurrido} minutos
-- Estatus de Sesión: {estatus_sesion}
+**INSTRUCCIÓN FINAL:** Responde como Alma en español, aplicando las reglas estrictas. Sé empático pero profesional.
 
-**ESTADO ACTUAL DEL USUARIO:**
-- Total de crisis detectadas: {crisis_count}
-- Easter Egg Solicitado: {easter_egg_solicitado}
-
-**INSTRUCCIÓN CONVERSACIONAL:** Sigue el FLUJO ESTRUCTURADO (Escucha 40% -> Mindfulness 30% -> Sugerencia Práctica 30%).
-Responde como Alma en español, sé empático pero no condescendiente, sabio pero no dogmático.
-
-Contexto usuario (si existe historial): {user_context}
+Contexto usuario: {user_context}
 Mensaje actual: {user_message}
-Historial reciente: {conversation_history}
+Historial: {conversation_history}
 """
 
-# --- SISTEMA DE SUSCRIPCIONES PAGADAS (se mantiene igual) ---
+# --- SISTEMA DE SUSCRIPCIONES PAGADAS ---
 
 def inicializar_suscripcion_paga(user_phone):
     fecha_activacion = datetime.now().date()
@@ -223,7 +233,7 @@ def usuario_puede_chatear(user_phone):
     subscription = get_user_subscription(user_phone)
     return verificar_trial_activo(subscription)
 
-# --- FUNCIONES ORIGINALES DE ALMA ---
+# --- FUNCIONES MEJORADAS DE ALMA ---
 
 def get_user_session(user_phone):
     if user_phone not in user_sessions:
@@ -353,6 +363,12 @@ def construir_prompt_alma(user_message, user_session, user_phone):
     easter_egg = detectar_easter_egg(user_message)
     tiempo_transcurrido_minutos = int((datetime.now().timestamp() - user_session['session_start_time']) / 60)
     
+    # ✅ NUEVA LÓGICA: RESTRICCIÓN HORÓSCOPO PARA HOMBRES
+    if easter_egg == "horoscopo_consciente" and user_session['gender'] == 'Hombre':
+        return """INSTRUCCIÓN ESTRICTA: El usuario (hombre) solicitó horóscopo. 
+RESPONDE EXACTAMENTE: "El horóscopo consciente es una herramienta de autoconocimiento disponible solo para mujeres. ¿Te gustaría explorar otras herramientas como propósito de vida o hábitos atómicos?" 
+NO ofrezcas horóscopo bajo ninguna circunstancia."""
+    
     # Información de suscripción ACTUALIZADA
     subscription = get_user_subscription(user_phone)
     trial_activo = verificar_trial_activo(subscription)
@@ -413,7 +429,10 @@ def llamar_deepseek(prompt):
             "max_tokens": 800,
             "stream": False
         }
+        
+        print(f"🔍 DEBUG: Llamando a DeepSeek API...")
         response = requests.post(DEEPSEEK_URL, headers=headers, json=data, timeout=30)
+        print(f"🔍 DEBUG: Status Code: {response.status_code}")
         
         if response.status_code == 200:
             return response.json()['choices'][0]['message']['content'].strip()
@@ -455,7 +474,7 @@ def manejar_comando_suscripcion(user_phone, user_message):
         
     return None
 
-# --- ENDPOINT PRINCIPAL COMPLETO ---
+# --- ENDPOINT PRINCIPAL COMPLETO MEJORADO ---
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
@@ -466,7 +485,7 @@ def webhook():
         if not user_message:
             return Response("OK", status=200)
         
-        print(f"Mensaje recibido de {user_phone}: {user_message}")
+        print(f"🔔 MENSAJE RECIBIDO de {user_phone}: {user_message}")
         
         # 1. VERIFICAR ACCESO (TRIAL O SUSCRIPCIÓN)
         if not usuario_puede_chatear(user_phone):
@@ -522,7 +541,10 @@ def webhook():
         
         # 10. GENERAR RESPUESTA CON ALMA COMPLETA
         prompt = construir_prompt_alma(user_message, session, user_phone)
+        print(f"📝 PROMPT ENVIADO A DEEPSEEK:\n{prompt}")
+        
         alma_response = llamar_deepseek(prompt)
+        print(f"💬 RESPUESTA DE ALMA: {alma_response}")
         
         # 11. GUARDAR HISTORIAL
         session['conversation_history'].append({
@@ -540,12 +562,12 @@ def webhook():
         return enviar_respuesta_twilio(alma_response, user_phone)
         
     except Exception as e:
-        print(f"Error crítico en webhook: {str(e)}")
+        print(f"❌ ERROR CRÍTICO en webhook: {str(e)}")
         import traceback
         traceback.print_exc()
         return enviar_respuesta_twilio("Lo siento, estoy teniendo dificultades técnicas. ¿Podrías intentarlo de nuevo? 🌱", user_phone)
 
-# --- ENDPOINTS ADMIN Y TWILIO (se mantienen igual) ---
+# --- ENDPOINTS ADMIN Y TWILIO ---
 
 def enviar_respuesta_twilio(mensaje, telefono):
     from twilio.rest import Client
@@ -564,10 +586,10 @@ def enviar_respuesta_twilio(mensaje, telefono):
             from_=TWILIO_WHATSAPP_NUMBER,
             to=telefono
         )
-        print(f"Mensaje Twilio enviado: {message.sid}")
+        print(f"✅ Mensaje Twilio enviado: {message.sid}")
         return Response("OK", status=200)
     except Exception as e:
-        print(f"Error al enviar mensaje Twilio: {e}")
+        print(f"❌ Error al enviar mensaje Twilio: {e}")
         return Response("OK", status=200)
 
 @app.route('/admin/activar/<user_phone>', methods=['POST'])
@@ -628,7 +650,12 @@ def health_check():
     }
 
 if __name__ == '__main__':
-    print("🤖 Alma Chatbot INICIADO - Sistema Completo")
+    print("🤖 Alma Chatbot INICIADO - Sistema Completo con Reglas Estrictas")
     print(f"📞 Número comprobantes: {NUMERO_COMPROBANTES}")
-    print("🎯 Características: Personalización por edad/género, Easter eggs, Horóscopo, Sistema de suscripciones")
+    print("🎯 Características MEJORADAS:")
+    print("   ✅ Restricción horóscopo solo para mujeres")
+    print("   ✅ Reglas estrictas de duración (30min + 15flex)")
+    print("   ✅ Estructura conversacional 40-30-30")
+    print("   ✅ Sistema completo de suscripciones")
+    print("   ✅ Debug logs mejorados")
     app.run(host='0.0.0.0', port=5000, debug=False)
