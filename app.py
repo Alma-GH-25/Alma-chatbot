@@ -739,23 +739,32 @@ def webhook():
         
         print(f"🔔 MENSAJE RECIBIDO de {user_phone}: {user_message}")
         
-        # ✅ NUEVO: VERIFICAR PRIMER USO Y MOSTRAR POLÍTICA DE PRIVACIDAD
+        # ✅ SIMPLIFICADO: OBTENER PERFIL ACTUAL
         user_profile = get_user_profile(user_phone)
-        if es_primer_uso(user_phone):
-            return enviar_respuesta_twilio(MENSAJE_PRIVACIDAD, user_phone)
         
-        # ✅ NUEVO: PROCESAR GÉNERO Y EDAD SI AÚN NO SE TIENEN
+        # ✅ SIMPLIFICADO: SI FALTAN GÉNERO O EDAD, PROCESAR DEL MENSAJE
         if user_profile['gender'] == 'Desconocido' or user_profile['age'] == 'Desconocido':
             gender, age = procesar_genero_edad(user_phone, user_message)
+            
             if gender and age:
+                # ✅ ENCONTRÓ GÉNERO Y EDAD - GUARDAR Y CONTINUAR
                 save_user_profile(user_phone, {
                     'gender': gender,
-                    'age': age,
-                    'acepto_politica': True
+                    'age': age
                 })
-                return enviar_respuesta_twilio(f"¡Gracias! 🌱 Como {gender.lower()} de {age} años, personalizaré tu experiencia. ¿En qué te gustaría trabajar hoy?", user_phone)
+                return enviar_respuesta_twilio(
+                    f"¡Perfecto! 🌱 Como {gender.lower()} de {age} años, personalizaré tu experiencia. "
+                    f"¿En qué te gustaría trabajar hoy? (estrés, relaciones, propósito, etc.)", 
+                    user_phone
+                )
             else:
-                return enviar_respuesta_twilio("Para personalizar tu experiencia, ¿me compartes tu género y edad? (Ejemplo: Mujer 25, Hombre 40)", user_phone)
+                # ✅ NO ENCONTRÓ - MOSTRAR MENSAJE SIMPLE DE PERSONALIZACIÓN
+                return enviar_respuesta_twilio(
+                    "¡Hola! Soy Alma 🌱\n\n"
+                    "Para personalizar tu experiencia, ¿me compartes tu género y edad?\n"
+                    "Ejemplo: 'Mujer 25' o 'Hombre 40'", 
+                    user_phone
+                )
         
         # 1. VERIFICAR ACCESO (TRIAL O SUSCRIPCIÓN)
         if not usuario_puede_chatear(user_phone):
