@@ -19,7 +19,7 @@ NUMERO_COMPROBANTES = "833 152 06 YY"
 user_sessions = {}
 user_subscriptions = {}
 paid_subscriptions = {}
-user_profiles = {}  # ✅ NUEVO: Para guardar perfil persistente
+user_profiles = {}
 
 # --- CONSTANTES COMERCIALES ---
 DIAS_TRIAL_GRATIS = 21
@@ -102,76 +102,7 @@ MENSAJE_SUSCRIPCION_ACTIVA = """
 *Recibirás recordatorios antes de que venza tu suscripción*
 """
 
-MENSAJE_RECORDATORIO_7_DIAS = """
-🔔 **Recordatorio de Suscripción**
-
-📅 Tu suscripción de Alma vence en **7 días** ({fecha_vencimiento})
-
-Para renovar y evitar interrupciones en tu acompañamiento:
-• Envía "RENOVAR" para recibir los datos de pago
-• O contáctanos para cualquier duda
-
-🌱 *Tu bienestar emocional es nuestra prioridad*
-"""
-
-MENSAJE_RECORDATORIO_3_DIAS = """
-⚠️ **Recordatorio Urgente**
-
-📅 Tu suscripción de Alma vence en **3 días** ({fecha_vencimiento})
-
-🔄 Renueva ahora para mantener tu acceso continuo:
-• Envía "RENOVAR" para datos de pago
-• Tu espacio seguro te espera
-
-💫 *No pierdas tu ritmo de crecimiento*
-"""
-
-MENSAJE_VENCIMIENTO_HOY = """
-🚨 **Suscripción por Vencer Hoy**
-
-📅 **Hoy {fecha_vencimiento}** vence tu suscripción de Alma
-
-⚡ Actúa ahora para mantener tu acceso:
-• Envía "RENOVAR" inmediatamente
-• Continúa tu transformación sin interrupciones
-
-🌿 *Tu camino de mindfulness es importante*
-"""
-
-MENSAJE_SUSCRIPCION_VENCIDA = """
-❌ **Suscripción Vencida**
-
-Tu acceso premium a Alma ha expirado.
-
-Para reactivar tu suscripción y continuar con tu acompañamiento:
-• Envía "SUSCRIBIR" para renovar
-• O contáctanos para asistencia
-
-🌱 *Estaremos aquí cuando decidas retomar tu camino*
-"""
-
-# ✅ NUEVO: MENSAJE DE PRIVACIDAD PARA SESIÓN 1
-MENSAJE_PRIVACIDAD = """
-🔒 **Política de Privacidad Alma**
-
-📊 **Qué guardamos:**
-• Género y edad (para personalización de respuestas)
-• Temas generales (ej: "trabajo", "relaciones")  
-• Tipo de meditación/trabajo emocional
-• Conteo de sesiones completadas
-
-🚫 **Qué NUNCA guardamos:**
-• Conversaciones completas
-• Experiencias personales detalladas
-• Datos sensibles o de salud
-• Información que te identifique
-
-🌱 **Cada sesión es nueva** - comenzamos fresco solo con datos que respetan tu anonimato.
-
-Para personalizar tu experiencia, ¿me compartes tu género y edad?
-"""
-
-# ✅ NUEVO: LISTA DE TRABAJOS EMOCIONALES Y MEDITACIONES
+# ✅ LISTA DE TRABAJOS EMOCIONALES Y MEDITACIONES
 TRABAJOS_EMOCIONALES = {
     "meditacion": ["meditar", "meditación", "mindfulness", "respiración", "respirar", "calmar", "tranquilizar"],
     "ritual_liberacion": ["carta", "escribir", "quemar", "romper", "liberar", "soltar", "dejar ir"],
@@ -223,7 +154,7 @@ Mensaje actual: {user_message}
 Historial reciente: {conversation_history}
 """
 
-# ✅ NUEVO: SISTEMA DE PERFILES PERSISTENTES
+# ✅ SISTEMA DE PERFILES PERSISTENTES SIMPLIFICADO
 def get_user_profile(user_phone):
     """Obtiene el perfil persistente del usuario"""
     if user_phone not in user_profiles:
@@ -233,7 +164,6 @@ def get_user_profile(user_phone):
             'sesiones_completadas': 0,
             'ultimo_tema': '',
             'ultimo_trabajo_emocional': '',
-            'acepto_politica': False,
             'creado_en': datetime.now().isoformat()
         }
     return user_profiles[user_phone]
@@ -246,11 +176,6 @@ def save_user_profile(user_phone, profile_data):
         'actualizado_en': datetime.now().isoformat()
     }
 
-def es_primer_uso(user_phone):
-    """Verifica si es la primera vez que el usuario interactúa"""
-    profile = get_user_profile(user_phone)
-    return not profile['acepto_politica']
-
 def extraer_trabajo_emocional(conversation_history):
     """Extrae el tipo de trabajo emocional de la conversación"""
     texto = ' '.join([msg['user'] + ' ' + msg['alma'] for msg in conversation_history[-3:]])
@@ -260,7 +185,7 @@ def extraer_trabajo_emocional(conversation_history):
         for palabra in palabras_clave:
             if palabra in texto_lower:
                 return trabajo
-    return "meditacion"  # Por defecto
+    return "meditacion"
 
 def extraer_tema_general(conversation_history):
     """Extrae el tema general de la conversación"""
@@ -276,7 +201,6 @@ def extraer_tema_general(conversation_history):
     return "bienestar emocional"
 
 # --- SISTEMA DE SUSCRIPCIONES PAGADAS ---
-
 def inicializar_suscripcion_paga(user_phone):
     fecha_activacion = datetime.now().date()
     fecha_vencimiento = fecha_activacion + timedelta(days=DIAS_SUSCRIPCION)
@@ -336,7 +260,6 @@ def dias_restantes_suscripcion(user_phone):
     return max(0, (fecha_vencimiento - hoy).days)
 
 # --- SISTEMA DE RECORDATORIOS AUTOMÁTICOS ---
-
 def ejecutar_recordatorios_automaticos():
     """Envía recordatorios automáticos de suscripción."""
     def tarea_background():
@@ -352,45 +275,61 @@ def ejecutar_recordatorios_automaticos():
                     fecha_vencimiento = datetime.strptime(sub['fecha_vencimiento'], '%Y-%m-%d').date()
                     dias_restantes = (fecha_vencimiento - hoy).days
                     
-                    # Recordatorio a 7 días
                     if dias_restantes == 7 and not sub['recordatorio_7d_enviado']:
-                        mensaje = MENSAJE_RECORDATORIO_7_DIAS.format(
-                            fecha_vencimiento=fecha_vencimiento.strftime('%d/%m/%Y')
-                        )
+                        mensaje = f"""
+🔔 **Recordatorio de Suscripción**
+
+📅 Tu suscripción de Alma vence en **7 días** ({fecha_vencimiento.strftime('%d/%m/%Y')})
+
+Para renovar y evitar interrupciones en tu acompañamiento:
+• Envía "RENOVAR" para recibir los datos de pago
+
+🌱 *Tu bienestar emocional es nuestra prioridad*
+"""
                         enviar_respuesta_twilio(mensaje, user_phone)
                         sub['recordatorio_7d_enviado'] = True
                         print(f"📤 Recordatorio 7d enviado a {user_phone}")
                         
-                    # Recordatorio a 3 días  
                     elif dias_restantes == 3 and not sub['recordatorio_3d_enviado']:
-                        mensaje = MENSAJE_RECORDATORIO_3_DIAS.format(
-                            fecha_vencimiento=fecha_vencimiento.strftime('%d/%m/%Y')
-                        )
+                        mensaje = f"""
+⚠️ **Recordatorio Urgente**
+
+📅 Tu suscripción de Alma vence en **3 días** ({fecha_vencimiento.strftime('%d/%m/%Y')})
+
+🔄 Renueva ahora para mantener tu acceso continuo:
+• Envía "RENOVAR" para datos de pago
+
+💫 *No pierdas tu ritmo de crecimiento*
+"""
                         enviar_respuesta_twilio(mensaje, user_phone)
                         sub['recordatorio_3d_enviado'] = True
                         print(f"📤 Recordatorio 3d enviado a {user_phone}")
                         
-                    # Recordatorio el día del vencimiento
                     elif dias_restantes == 0 and not sub['recordatorio_0d_enviado']:
-                        mensaje = MENSAJE_VENCIMIENTO_HOY.format(
-                            fecha_vencimiento=fecha_vencimiento.strftime('%d/%m/%Y')
-                        )
+                        mensaje = f"""
+🚨 **Suscripción por Vencer Hoy**
+
+📅 **Hoy {fecha_vencimiento.strftime('%d/%m/%Y')}** vence tu suscripción de Alma
+
+⚡ Actúa ahora para mantener tu acceso:
+• Envía "RENOVAR" inmediatamente
+
+🌿 *Tu camino de mindfulness es importante*
+"""
                         enviar_respuesta_twilio(mensaje, user_phone)
                         sub['recordatorio_0d_enviado'] = True
                         print(f"📤 Recordatorio 0d enviado a {user_phone}")
                 
-                time.sleep(3600)  # Verificar cada hora
+                time.sleep(3600)
             except Exception as e:
                 print(f"❌ Error en recordatorios automáticos: {e}")
                 time.sleep(300)
     
-    # Iniciar en segundo plano
     thread = Thread(target=tarea_background, daemon=True)
     thread.start()
     print("✅ Sistema de recordatorios automáticos INICIADO")
 
 # --- SISTEMA DE TRIAL Y ACCESO ---
-
 def get_user_subscription(user_phone):
     if user_phone not in user_subscriptions:
         user_subscriptions[user_phone] = {
@@ -418,7 +357,6 @@ def usuario_puede_chatear(user_phone):
     return verificar_trial_activo(subscription)
 
 # --- FUNCIONES MEJORADAS DE ALMA ---
-
 def get_user_session(user_phone):
     if user_phone not in user_sessions:
         user_sessions[user_phone] = {
@@ -542,42 +480,59 @@ def obtener_contexto_alma(gender, age):
     
     return {"foco": "auto-descubrimiento y resiliencia", "lenguaje": "comprensivo y neutro", "metafora": "semilla de crecimiento"}
 
+# ✅ FUNCIÓN PARA PROCESAR GÉNERO Y EDAD
+def procesar_genero_edad(user_phone, user_message):
+    """Procesa el mensaje para extraer género y edad"""
+    message_lower = user_message.lower()
+    
+    gender = None
+    if any(word in message_lower for word in ["mujer", "femenino", "femenina", "chica"]):
+        gender = "Mujer"
+    elif any(word in message_lower for word in ["hombre", "masculino", "masculina", "chico"]):
+        gender = "Hombre"
+    
+    age = None
+    match_age = re.search(r'\b(\d{2})\b', user_message)
+    if match_age:
+        try:
+            age_num = int(match_age.group(1))
+            if 18 <= age_num <= 100:
+                age = str(age_num)
+        except ValueError:
+            pass
+    
+    return gender, age
+
 def construir_prompt_alma(user_message, user_session, user_phone):
-    # ✅ ACTUALIZADO: Usar perfil persistente en lugar de sesión temporal
     user_profile = get_user_profile(user_phone)
     
     contexto = obtener_contexto_alma(user_profile['gender'], user_profile['age'])
     easter_egg = detectar_easter_egg(user_message)
     tiempo_transcurrido_minutos = int((datetime.now().timestamp() - user_session['session_start_time']) / 60)
     
-    # ✅ NUEVA LÓGICA: RESTRICCIÓN HORÓSCOPO PARA HOMBRES
+    # ✅ RESTRICCIÓN HORÓSCOPO PARA HOMBRES
     if easter_egg == "horoscopo_consciente" and user_profile['gender'] == 'Hombre':
         return """INSTRUCCIÓN ESTRICTA: El usuario (hombre) solicitó horóscopo. 
 RESPONDE EXACTAMENTE: "El horóscopo consciente es una herramienta de autoconocimiento disponible solo para mujeres. ¿Te gustaría explorar otras herramientas como propósito de vida o hábitos atómicos?" 
 NO ofrezcas horóscopo bajo ninguna circunstancia."""
     
-    # Información de suscripción ACTUALIZADA
     subscription = get_user_subscription(user_phone)
     trial_activo = verificar_trial_activo(subscription)
-    dias_restantes_trial_val = dias_restantes_trial(subscription)
-    usuario_suscrito_val = verificar_suscripcion_activa(user_phone)
-    dias_restantes_suscripcion_val = dias_restantes_suscripcion(user_phone)
     
-    # Determinar estatus de sesión
     if tiempo_transcurrido_minutos >= LIMITE_SESION_MAXIMO_MINUTOS:
-        estatus_sesion = f"LIMITE EXCEDIDO ({LIMITE_SESION_MAXIMO_MINUTOS} MINUTOS). DEBES CERRAR INMEDIATAMENTE la conversación y guardar el contexto."
+        estatus_sesion = f"LIMITE EXCEDIDO ({LIMITE_SESION_MAXIMO_MINUTOS} MINUTOS). DEBES CERRAR INMEDIATAMENTE."
     elif tiempo_transcurrido_minutos >= DURACION_SESION_NORMAL_MINUTOS:
-        estatus_sesion = f"CIERRE FLEXIBLE (TIEMPO EXTRA). Ya superaste los {DURACION_SESION_NORMAL_MINUTOS} minutos. Mantente en la Fase 3 (Sugerencia Práctica) y finaliza con el cierre, la felicitación y el ritual. NO extiendas más de {LIMITE_SESION_MAXIMO_MINUTOS} minutos."
+        estatus_sesion = f"CIERRE FLEXIBLE. Ya superaste los {DURACION_SESION_NORMAL_MINUTOS} minutos. Mantente en la Fase 3 (Sugerencia Práctica)."
     elif tiempo_transcurrido_minutos >= INTERVALO_RECORDATORIO_MINUTOS:
-        estatus_sesion = "AVISO DE CIERRE ENVIADO. Inicia la transición a la Fase 3 (Sugerencia Práctica) para que el cierre sea suave antes de los 30 minutos."
+        estatus_sesion = "AVISO DE CIERRE ENVIADO. Inicia transición a Fase 3."
     else:
-        estatus_sesion = f"Sesión en curso. {DURACION_SESION_NORMAL_MINUTOS - tiempo_transcurrido_minutos} minutos restantes para el aviso de cierre."
+        estatus_sesion = f"Sesión en curso. {DURACION_SESION_NORMAL_MINUTOS - tiempo_transcurrido_minutos} minutos restantes."
         
     conversation_history = ""
     for msg in user_session['conversation_history'][-3:]:
         conversation_history += f"Usuario: {msg['user']}\nAlma: {msg['alma']}\n"
     
-    user_context = f"Género: {user_profile['gender']}, Edad: {user_profile['age']}, Sesiones: {user_profile['sesiones_completadas']}, Último tema: {user_profile['ultimo_tema']}"
+    user_context = f"Género: {user_profile['gender']}, Edad: {user_profile['age']}, Sesiones: {user_profile['sesiones_completadas']}"
 
     prompt = ALMA_PROMPT_BASE.format(
         gender=user_profile['gender'],
@@ -587,10 +542,6 @@ NO ofrezcas horóscopo bajo ninguna circunstancia."""
         metafora_personalizada=contexto['metafora'],
         sesiones_completadas=user_profile['sesiones_completadas'],
         ultimo_trabajo_emocional=user_profile['ultimo_trabajo_emocional'],
-        trial_activo=trial_activo,
-        dias_restantes_trial_val=dias_restantes_trial_val,
-        usuario_suscrito_val=usuario_suscrito_val,
-        dias_restantes_suscripcion_val=dias_restantes_suscripcion_val,
         tiempo_transcurrido=tiempo_transcurrido_minutos,
         estatus_sesion=estatus_sesion,
         crisis_count=user_session['crisis_count'],
@@ -643,7 +594,6 @@ te recomiendo contactar **inmediatamente**:
 🏙️ **EN QUERÉTARO:**
 📞 **Línea de la Vida Querétaro:** 800 008 1100
 🏥 **Centro de Atención Psicológica UAQ:** 442 192 1200 Ext. 6305
-🌐 **CAPSI Universidad Autónoma de Querétaro:** Atención especializada
 
 📱 **LÍNEAS NACIONALES 24/7:**
 🆘 **Línea de la Vida:** 800 911 2000
@@ -663,60 +613,34 @@ def manejar_comando_suscripcion(user_phone, user_message):
         
     return None
 
-# ✅ NUEVO: FUNCIÓN PARA PROCESAR GÉNERO Y EDAD
-def procesar_genero_edad(user_phone, user_message):
-    """Procesa el mensaje para extraer género y edad"""
-    message_lower = user_message.lower()
-    
-    # Extraer género
-    gender = None
-    if any(word in message_lower for word in ["mujer", "femenino", "femenina", "chica"]):
-        gender = "Mujer"
-    elif any(word in message_lower for word in ["hombre", "masculino", "masculina", "chico"]):
-        gender = "Hombre"
-    
-    # Extraer edad
-    age = None
-    match_age = re.search(r'\b(\d{2})\b', user_message)
-    if match_age:
-        try:
-            age_num = int(match_age.group(1))
-            if 18 <= age_num <= 100:
-                age = str(age_num)
-        except ValueError:
-            pass
-    
-    return gender, age
-
-# ✅ Limpieza cada 30 días de inactividad
-def ejecutar_limpieza_cada_30_dias():
+# ✅ LIMPIEZA CADA 30 DÍAS DE INACTIVIDAD
+def ejecutar_limpieza_automatica():
     """Limpia datos de usuarios inactivos por 30 días"""
     def tarea_limpieza():
         while True:
             try:
-                print("🧹 Ejecutando limpieza cada 30 días de inactividad...")
+                print("🧹 Ejecutando limpieza de usuarios inactivos...")
                 hoy = datetime.now()
                 
                 # Limpiar sesiones de usuarios inactivos > 30 días
                 for phone in list(user_sessions.keys()):
                     session = user_sessions[phone]
                     last_contact = datetime.fromisoformat(session['last_contact'])
-                    if (hoy - last_contact).days > 30:  # CORREGIDO: 30 días
+                    if (hoy - last_contact).days > 30:
                         user_sessions.pop(phone, None)
-                        print(f"🧹 Sesión limpiada (30 días inactivo): {phone}")
+                        print(f"🧹 Sesión limpiada: {phone}")
                 
-                # Limpiar perfiles de usuarios inactivos > 30 días
+                # Limpiar perfiles de usuarios inactivos > 30 días sin suscripción
                 for phone in list(user_profiles.keys()):
                     profile = user_profiles[phone]
                     ultima_actividad = profile.get('actualizado_en', profile['creado_en'])
                     last_activity = datetime.fromisoformat(ultima_actividad)
                     
-                    # NO limpiar si tiene suscripción activa o trial vigente
-                    if (hoy - last_activity).days > 30 and not usuario_puede_chatear(phone):  # CORREGIDO: 30 días
+                    if (hoy - last_activity).days > 30 and not usuario_puede_chatear(phone):
                         user_profiles.pop(phone, None)
-                        print(f"🧹 Perfil limpiado (30 días inactivo): {phone}")
+                        print(f"🧹 Perfil limpiado: {phone}")
                 
-                time.sleep(86400 * 15)  # Ejecutar cada 15 días para verificar
+                time.sleep(86400 * 15)  # Ejecutar cada 15 días
                 
             except Exception as e:
                 print(f"❌ Error en limpieza: {e}")
@@ -724,10 +648,9 @@ def ejecutar_limpieza_cada_30_dias():
     
     thread = Thread(target=tarea_limpieza, daemon=True)
     thread.start()
-    print("✅ Sistema de limpieza cada 30 días de inactividad INICIADO")
-                          
-# --- ENDPOINT PRINCIPAL COMPLETO MEJORADO ---
+    print("✅ Sistema de limpieza automática INICIADO")
 
+# --- ENDPOINT PRINCIPAL SIMPLIFICADO ---
 @app.route('/webhook', methods=['POST'])
 def webhook():
     try:
@@ -739,15 +662,13 @@ def webhook():
         
         print(f"🔔 MENSAJE RECIBIDO de {user_phone}: {user_message}")
         
-        # ✅ SIMPLIFICADO: OBTENER PERFIL ACTUAL
+        # ✅ SIMPLIFICADO: SOLO VERIFICAR GÉNERO/EDAD
         user_profile = get_user_profile(user_phone)
         
-        # ✅ SIMPLIFICADO: SI FALTAN GÉNERO O EDAD, PROCESAR DEL MENSAJE
         if user_profile['gender'] == 'Desconocido' or user_profile['age'] == 'Desconocido':
             gender, age = procesar_genero_edad(user_phone, user_message)
             
             if gender and age:
-                # ✅ ENCONTRÓ GÉNERO Y EDAD - GUARDAR Y CONTINUAR
                 save_user_profile(user_phone, {
                     'gender': gender,
                     'age': age
@@ -758,7 +679,6 @@ def webhook():
                     user_phone
                 )
             else:
-                # ✅ NO ENCONTRÓ - MOSTRAR MENSAJE SIMPLE DE PERSONALIZACIÓN
                 return enviar_respuesta_twilio(
                     "¡Hola! Soy Alma 🌱\n\n"
                     "Para personalizar tu experiencia, ¿me compartes tu género y edad?\n"
@@ -766,7 +686,7 @@ def webhook():
                     user_phone
                 )
         
-        # 1. VERIFICAR ACCESO (TRIAL O SUSCRIPCIÓN)
+        # 1. VERIFICAR ACCESO
         if not usuario_puede_chatear(user_phone):
             return enviar_respuesta_twilio(MENSAJE_INVITACION_SUSCRIPCION, user_phone)
         
@@ -783,7 +703,7 @@ def webhook():
         if restriccion is not True:
             horas = restriccion['horas']
             minutos = restriccion['minutos']
-            alma_response = f"¡Hola! Tu sesión de Alma de hoy ya ha concluido. Recuerda que este camino es diario, no intensivo. Podrás iniciar tu próxima sesión una vez que sea mañana (en {horas} horas y {minutos} minutos). ¡Estaré aquí para ti en tu nuevo día de crecimiento! 🌱"
+            alma_response = f"¡Hola! Tu sesión de Alma de hoy ya ha concluido. Podrás iniciar tu próxima sesión mañana (en {horas} horas y {minutos} minutos). ¡Estaré aquí para ti! 🌱"
             return enviar_respuesta_twilio(alma_response, user_phone)
         
         # 5. PROTOCOLO DE CRISIS
@@ -796,7 +716,6 @@ def webhook():
         tiempo_transcurrido_minutos = int((datetime.now().timestamp() - session['session_start_time']) / 60)
         
         if tiempo_transcurrido_minutos >= LIMITE_SESION_MAXIMO_MINUTOS:
-            # ✅ ACTUALIZADO: Guardar datos de la sesión antes de cerrar
             tema_hoy = extraer_tema_general(session['conversation_history'])
             trabajo_emocional = extraer_trabajo_emocional(session['conversation_history'])
             
@@ -819,17 +738,17 @@ def webhook():
             print(f"[{user_phone}] Inyectando instrucción de cierre a DeepSeek.")
             user_message = AVISO_CIERRE + " ||| Mensaje real del usuario: " + user_message
 
-        # 8. ACTUALIZAR CONTEXTO DE SESIÓN (no confundir con perfil persistente)
+        # 8. ACTUALIZAR CONTEXTO DE SESIÓN
         contexto_actualizado = intentar_actualizar_contexto(user_message, session)
         
-        # 9. GENERAR RESPUESTA CON ALMA COMPLETA
+        # 9. GENERAR RESPUESTA CON ALMA
         prompt = construir_prompt_alma(user_message, session, user_phone)
         print(f"📝 PROMPT ENVIADO A DEEPSEEK:\n{prompt}")
         
         alma_response = llamar_deepseek(prompt)
         print(f"💬 RESPUESTA DE ALMA: {alma_response}")
         
-        # 10. GUARDAR HISTORIAL DE SESIÓN
+        # 10. GUARDAR HISTORIAL
         session['conversation_history'].append({
             'user': user_message,
             'alma': alma_response,
@@ -850,8 +769,7 @@ def webhook():
         traceback.print_exc()
         return enviar_respuesta_twilio("Lo siento, estoy teniendo dificultades técnicas. ¿Podrías intentarlo de nuevo? 🌱", user_phone)
 
-# --- ENDPOINTS ADMIN Y TWILIO ---
-
+# --- ENDPOINTS TWILIO Y ADMIN ---
 def enviar_respuesta_twilio(mensaje, telefono):
     from twilio.rest import Client
     
@@ -894,55 +812,6 @@ def admin_activar_suscripcion(user_phone):
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
 
-@app.route('/admin/suscripciones', methods=['GET'])
-def admin_ver_suscripciones():
-    hoy = datetime.now().date()
-    suscripciones_info = []
-    
-    for user_phone, sub in paid_subscriptions.items():
-        fecha_vencimiento = datetime.strptime(sub['fecha_vencimiento'], '%Y-%m-%d').date()
-        dias_restantes = (fecha_vencimiento - hoy).days
-        
-        suscripciones_info.append({
-            'telefono': user_phone,
-            'fecha_activacion': sub['fecha_activacion'],
-            'fecha_vencimiento': sub['fecha_vencimiento'],
-            'estado': sub['estado'],
-            'dias_restantes': dias_restantes,
-            'recordatorio_7d': sub['recordatorio_7d_enviado'],
-            'recordatorio_3d': sub['recordatorio_3d_enviado'],
-            'recordatorio_0d': sub['recordatorio_0d_enviado']
-        })
-    
-    return {
-        "total_suscripciones": len(paid_subscriptions),
-        "activas": sum(1 for s in paid_subscriptions.values() if s['estado'] == 'activo'),
-        "vencidas": sum(1 for s in paid_subscriptions.values() if s['estado'] == 'vencido'),
-        "suscripciones": suscripciones_info
-    }
-
-# ✅ NUEVO: ENDPOINT PARA VER PERFILES
-@app.route('/admin/perfiles', methods=['GET'])
-def admin_ver_perfiles():
-    perfiles_info = []
-    
-    for user_phone, profile in user_profiles.items():
-        perfiles_info.append({
-            'telefono': user_phone,
-            'genero': profile['gender'],
-            'edad': profile['age'],
-            'sesiones_completadas': profile['sesiones_completadas'],
-            'ultimo_tema': profile['ultimo_tema'],
-            'ultimo_trabajo_emocional': profile['ultimo_trabajo_emocional'],
-            'creado_en': profile['creado_en'],
-            'actualizado_en': profile.get('actualizado_en', '')
-        })
-    
-    return {
-        "total_perfiles": len(user_profiles),
-        "perfiles": perfiles_info
-    }
-
 @app.route('/health', methods=['GET'])
 def health_check():
     return {
@@ -951,27 +820,22 @@ def health_check():
         "users_activos": len(user_sessions),
         "perfiles_registrados": len(user_profiles),
         "suscripciones_activas": sum(1 for s in paid_subscriptions.values() if s['estado'] == 'activo'),
-        "trials_activos": sum(1 for s in user_subscriptions.values() if verificar_trial_activo(s)),
         "timestamp": datetime.now().isoformat()
     }
 
 if __name__ == '__main__':
-    # Iniciar sistema de recordatorios automáticos
+    # Iniciar sistemas automáticos
     ejecutar_recordatorios_automaticos()
+    ejecutar_limpieza_automatica()
     
-    # ✅ CORREGIDO: Iniciar sistema de limpieza cada 30 días de inactividad
-    ejecutar_limpieza_cada_30_dias()
-    
-    print("🤖 Alma Chatbot INICIADO - Sistema Completo Actualizado")
+    print("🤖 Alma Chatbot INICIADO - Sistema Simplificado")
     print(f"📞 Número comprobantes: {NUMERO_COMPROBANTES}")
-    print("🎯 NUEVAS CARACTERÍSTICAS IMPLEMENTADAS:")
-    print("   ✅ Política de privacidad en sesión 1")
-    print("   ✅ Perfiles persistentes (género, edad, sesiones)")
-    print("   ✅ Detección de trabajos emocionales y meditaciones")
-    print("   ✅ Guardado de temas generales y progreso")
-    print("   ✅ Recordatorios automáticos (7d, 3d, 0d)")
-    print("   ✅ Endpoint /admin/perfiles para ver datos guardados")
-    print("   ✅ Limpieza automática cada 30 días para usuarios inactivos")  # CORREGIDO
+    print("🎯 CARACTERÍSTICAS:")
+    print("   ✅ Flujo simplificado sin política de privacidad")
+    print("   ✅ Personalización por género/edad")
+    print("   ✅ Restricción horóscopo solo mujeres")
+    print("   ✅ Sistema de recordatorios automáticos")
+    print("   ✅ Limpieza automática cada 30 días")
     
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
