@@ -102,6 +102,27 @@ MENSAJE_SUSCRIPCION_ACTIVA = """
 *Recibirás recordatorios antes de que venza tu suscripción*
 """
 
+# ✅ MENSAJE DE PRIVACIDAD PARA SESIÓN 1
+MENSAJE_PRIVACIDAD = """
+🔒 **Política de Privacidad Alma**
+
+📊 **Qué guardamos:**
+• Género y edad (para personalización de respuestas)
+• Temas generales (ej: "trabajo", "relaciones")  
+• Tipo de meditación/trabajo emocional
+• Conteo de sesiones completadas
+
+🚫 **Qué NUNCA guardamos:**
+• Conversaciones completas
+• Experiencias personales detalladas
+• Datos sensibles o de salud
+• Información que te identifique
+
+🌱 **Cada sesión es nueva** - comenzamos fresco solo con datos que respetan tu anonimato.
+
+Para personalizar tu experiencia, ¿me compartes tu género y edad?
+"""
+
 # ✅ LISTA DE TRABAJOS EMOCIONALES Y MEDITACIONES
 TRABAJOS_EMOCIONALES = {
     "meditacion": ["meditar", "meditación", "mindfulness", "respiración", "respirar", "calmar", "tranquilizar"],
@@ -154,7 +175,7 @@ Mensaje actual: {user_message}
 Historial reciente: {conversation_history}
 """
 
-# ✅ SISTEMA DE PERFILES PERSISTENTES SIMPLIFICADO
+# ✅ SISTEMA DE PERFILES PERSISTENTES CORREGIDO
 def get_user_profile(user_phone):
     """Obtiene el perfil persistente del usuario"""
     if user_phone not in user_profiles:
@@ -164,6 +185,7 @@ def get_user_profile(user_phone):
             'sesiones_completadas': 0,
             'ultimo_tema': '',
             'ultimo_trabajo_emocional': '',
+            'primer_uso': True,  # ✅ CORREGIDO: Para controlar mensaje privacidad
             'creado_en': datetime.now().isoformat()
         }
     return user_profiles[user_phone]
@@ -650,7 +672,7 @@ def ejecutar_limpieza_automatica():
     thread.start()
     print("✅ Sistema de limpieza automática INICIADO")
 
-# --- ENDPOINT PRINCIPAL SIMPLIFICADO ---
+# --- ENDPOINT PRINCIPAL CORREGIDO ---
 @app.route('/webhook', methods=['POST'])
 def webhook():
     try:
@@ -662,9 +684,35 @@ def webhook():
         
         print(f"🔔 MENSAJE RECIBIDO de {user_phone}: {user_message}")
         
-        # ✅ SIMPLIFICADO: SOLO VERIFICAR GÉNERO/EDAD
+        # ✅ OBTENER PERFIL ACTUAL
         user_profile = get_user_profile(user_phone)
         
+        # ✅ VERIFICAR SI ES PRIMER USO (mostrar política solo una vez)
+        if user_profile['primer_uso']:
+            
+            # ✅ PRIMERO: Intentar extraer género y edad del mensaje actual
+            gender, age = procesar_genero_edad(user_phone, user_message)
+            
+            if gender and age:
+                # ✅ SI ENCONTRÓ género y edad - guardar y CONTINUAR
+                save_user_profile(user_phone, {
+                    'gender': gender,
+                    'age': age,
+                    'primer_uso': False  # ✅ IMPORTANTE: Ya no es primer uso
+                })
+                return enviar_respuesta_twilio(
+                    f"¡Perfecto! 🌱 Como {gender.lower()} de {age} años, personalizaré tu experiencia. "
+                    f"¿En qué te gustaría trabajar hoy? (estrés, relaciones, propósito, etc.)", 
+                    user_phone
+                )
+            else:
+                # ✅ NO ENCONTRÓ - MOSTRAR POLÍTICA DE PRIVACIDAD UNA SOLA VEZ
+                save_user_profile(user_phone, {
+                    'primer_uso': False  # ✅ Ya vio el mensaje, no se repetirá
+                })
+                return enviar_respuesta_twilio(MENSAJE_PRIVACIDAD, user_phone)
+        
+        # ✅ VERIFICAR SI FALTAN GÉNERO O EDAD (después de primer uso)
         if user_profile['gender'] == 'Desconocido' or user_profile['age'] == 'Desconocido':
             gender, age = procesar_genero_edad(user_phone, user_message)
             
@@ -674,13 +722,12 @@ def webhook():
                     'age': age
                 })
                 return enviar_respuesta_twilio(
-                    f"¡Perfecto! 🌱 Como {gender.lower()} de {age} años, personalizaré tu experiencia. "
-                    f"¿En qué te gustaría trabajar hoy? (estrés, relaciones, propósito, etc.)", 
+                    f"¡Gracias! 🌱 Como {gender.lower()} de {age} años, personalizaré tu experiencia. "
+                    f"¿En qué te gustaría trabajar hoy?", 
                     user_phone
                 )
             else:
                 return enviar_respuesta_twilio(
-                    "¡Hola! Soy Alma 🌱\n\n"
                     "Para personalizar tu experiencia, ¿me compartes tu género y edad?\n"
                     "Ejemplo: 'Mujer 25' o 'Hombre 40'", 
                     user_phone
@@ -828,10 +875,10 @@ if __name__ == '__main__':
     ejecutar_recordatorios_automaticos()
     ejecutar_limpieza_automatica()
     
-    print("🤖 Alma Chatbot INICIADO - Sistema Simplificado")
+    print("🤖 Alma Chatbot INICIADO - Sistema Completo Corregido")
     print(f"📞 Número comprobantes: {NUMERO_COMPROBANTES}")
-    print("🎯 CARACTERÍSTICAS:")
-    print("   ✅ Flujo simplificado sin política de privacidad")
+    print("🎯 CARACTERÍSTICAS IMPLEMENTADAS:")
+    print("   ✅ Política de privacidad SOLO en primer uso")
     print("   ✅ Personalización por género/edad")
     print("   ✅ Restricción horóscopo solo mujeres")
     print("   ✅ Sistema de recordatorios automáticos")
