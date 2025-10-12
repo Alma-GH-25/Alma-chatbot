@@ -725,15 +725,7 @@ def ejecutar_limpieza_cada_30_dias():
     thread = Thread(target=tarea_limpieza, daemon=True)
     thread.start()
     print("✅ Sistema de limpieza cada 30 días de inactividad INICIADO")
-                
-            except Exception as e:
-                print(f"❌ Error en limpieza: {e}")
-                time.sleep(3600)
-    
-    thread = Thread(target=tarea_limpieza, daemon=True)
-    thread.start()
-    print("✅ Sistema de limpieza cada 2 meses INICIADO")
-
+                          
 # --- ENDPOINT PRINCIPAL COMPLETO MEJORADO ---
 
 @app.route('/webhook', methods=['POST'])
