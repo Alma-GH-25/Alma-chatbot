@@ -688,6 +688,52 @@ def procesar_genero_edad(user_phone, user_message):
     
     return gender, age
 
+# ✅ Limpieza cada 30 días de inactividad
+def ejecutar_limpieza_cada_30_dias():
+    """Limpia datos de usuarios inactivos por 30 días"""
+    def tarea_limpieza():
+        while True:
+            try:
+                print("🧹 Ejecutando limpieza cada 30 días de inactividad...")
+                hoy = datetime.now()
+                
+                # Limpiar sesiones de usuarios inactivos > 30 días
+                for phone in list(user_sessions.keys()):
+                    session = user_sessions[phone]
+                    last_contact = datetime.fromisoformat(session['last_contact'])
+                    if (hoy - last_contact).days > 30:  # CORREGIDO: 30 días
+                        user_sessions.pop(phone, None)
+                        print(f"🧹 Sesión limpiada (30 días inactivo): {phone}")
+                
+                # Limpiar perfiles de usuarios inactivos > 30 días
+                for phone in list(user_profiles.keys()):
+                    profile = user_profiles[phone]
+                    ultima_actividad = profile.get('actualizado_en', profile['creado_en'])
+                    last_activity = datetime.fromisoformat(ultima_actividad)
+                    
+                    # NO limpiar si tiene suscripción activa o trial vigente
+                    if (hoy - last_activity).days > 30 and not usuario_puede_chatear(phone):  # CORREGIDO: 30 días
+                        user_profiles.pop(phone, None)
+                        print(f"🧹 Perfil limpiado (30 días inactivo): {phone}")
+                
+                time.sleep(86400 * 15)  # Ejecutar cada 15 días para verificar
+                
+            except Exception as e:
+                print(f"❌ Error en limpieza: {e}")
+                time.sleep(3600)
+    
+    thread = Thread(target=tarea_limpieza, daemon=True)
+    thread.start()
+    print("✅ Sistema de limpieza cada 30 días de inactividad INICIADO")
+                
+            except Exception as e:
+                print(f"❌ Error en limpieza: {e}")
+                time.sleep(3600)
+    
+    thread = Thread(target=tarea_limpieza, daemon=True)
+    thread.start()
+    print("✅ Sistema de limpieza cada 2 meses INICIADO")
+
 # --- ENDPOINT PRINCIPAL COMPLETO MEJORADO ---
 
 @app.route('/webhook', methods=['POST'])
@@ -912,6 +958,9 @@ if __name__ == '__main__':
     # Iniciar sistema de recordatorios automáticos
     ejecutar_recordatorios_automaticos()
     
+    # ✅ CORREGIDO: Iniciar sistema de limpieza cada 30 días de inactividad
+    ejecutar_limpieza_cada_30_dias()
+    
     print("🤖 Alma Chatbot INICIADO - Sistema Completo Actualizado")
     print(f"📞 Número comprobantes: {NUMERO_COMPROBANTES}")
     print("🎯 NUEVAS CARACTERÍSTICAS IMPLEMENTADAS:")
@@ -921,6 +970,7 @@ if __name__ == '__main__':
     print("   ✅ Guardado de temas generales y progreso")
     print("   ✅ Recordatorios automáticos (7d, 3d, 0d)")
     print("   ✅ Endpoint /admin/perfiles para ver datos guardados")
+    print("   ✅ Limpieza automática cada 30 días para usuarios inactivos")  # CORREGIDO
     
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
