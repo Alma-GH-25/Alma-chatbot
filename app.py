@@ -594,13 +594,41 @@ Estaré aquí cuando te sientas más estable 🌱
 def manejar_comando_suscripcion(user_phone, user_message):
     message_lower = user_message.lower()
     
-    if "suscribir" in message_lower or "renovar" in message_lower:
-        return MENSAJE_SUSCRIPCION
+    triggers_suscripcion = [
+        "suscribo", "suscribirme", "suscribirse", "renovar", "renuevo", 
+        "cómo pago", "cómo pagar", "transferencia", "depósito", "depositar", 
+        "cómo deposito", "cuánto cuesta", "precio", "costo", "mensualidad", 
+        "datos bancarios", "número de cuenta", "clabe", "banco", "quiero pagar", 
+        "deseo pagar", "informes", "información", "cómo pago", "cómo me suscribo", 
+        "cómo renovar"
+    ]
+    
+    for trigger in triggers_suscripcion:
+        if trigger in message_lower:
+            return MENSAJE_SUSCRIPCION
+    
+    # 🛡️ DETECCIÓN SEGURA DE COMPROBANTE - SOLO EN CONTEXTO DE PAGO
+    palabras_comprobante = ["comprobante", "captura", "recibo", "voucher"]
+    
+    if any(palabra in message_lower for palabra in palabras_comprobante):
+        # ✅ VERIFICAR CONTEXTO - Solo activar si hay palabras relacionadas con PAGO
+        contexto_pago = any(contexto in message_lower for contexto in [
+            "pago", "pagué", "transferí", "transferencia", "deposito", "deposité", "suscribí", "mensualidad"
+        ])
         
-    # Detección automática de comprobante
-    if "comprobante" in message_lower or "pago" in message_lower or "transferencia" in message_lower:
-        return "📋 **Comprobante recibido**\nHemos registrado tu comprobante. Un administrador activará tu suscripción en las próximas 24 horas. ¡Gracias! 🌱"
+        # ❌ EVITAR CONTEXTOS NEGATIVOS/NEUTRALES
+        contexto_negativo = any(negativo in message_lower for negativo in [
+            "cobraron", "engañaron", "frustrado", "problema", "error", "incorrecto", 
+            "queja", "reclamo", "mal", "pésimo", "terrible"
+        ])
         
+        if contexto_pago and not contexto_negativo:
+            print(f"📋 Comprobante de pago detectado: {user_message}")
+            return "📋 **Comprobante recibido**\nHemos registrado tu comprobante. Un administrador activará tu suscripción en las próximas 24 horas. ¡Gracias por confiar en Alma! 🌱"
+        
+        # Si hay palabra de comprobante pero en contexto negativo/neutral → IGNORAR
+        print(f"🔍 Comprobante en contexto no-comercial - Ignorar: {user_message}")
+    
     return None
 
 # ✅ LIMPIEZA MEJORADA - AHORA SOLO LIMPIA MEMORIA TEMPORAL
