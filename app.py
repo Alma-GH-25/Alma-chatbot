@@ -60,13 +60,15 @@ TRIGGER_CRISIS = [
     "voy a quitarme la vida",
     "me voy a quitar la vida",
     "acabar con mi vida",  
+    
+    # MÉTODOS ESPECÍFICOS
     "saltar de un edificio",
     "tirarme de un puente",
     "ahorcarme",
-    "colgarme"
-    "dispararme"
-    "darme un tiro"
-    "cortarme las venas"
+    "colgarme",
+    "dispararme",
+    "darme un tiro",
+    "cortarme las venas",
     "cortar mis venas"
 ]
 
@@ -481,6 +483,7 @@ def debe_recordar_cierre(session):
 
 # --- DETECCIÓN DE CRISIS PRECISA Y CONSERVADORA ---
 
+# --- DETECCIÓN DE CRISIS ACTUALIZADA ---
 def detectar_crisis_real(user_message):
     """
     Detección MUY conservadora - solo activa con suicidio explícito
@@ -488,6 +491,7 @@ def detectar_crisis_real(user_message):
     """
     mensaje = user_message.lower().strip()
     
+    # Patrones que requieren contexto suicida explícito
     patrones_suicidio_explicito = [
         r"quiero suicidarme",
         r"me voy a suicidar", 
@@ -497,7 +501,14 @@ def detectar_crisis_real(user_message):
         r"quitarme la vida",
         r"acabar con mi vida",
         r"pensando en suicidarme",
-        r"planeo suicidarme"
+        r"planeo suicidarme",
+        r"saltar de un edificio",
+        r"tirarme de un puente",
+        r"ahorcarme\b",
+        r"colgarme\b",
+        r"dispararme\b",
+        r"darme un tiro",
+        r"cortarme las venas"
     ]
     
     for patron in patrones_suicidio_explicito:
@@ -505,6 +516,7 @@ def detectar_crisis_real(user_message):
             print(f"🚨 CRISIS DETECTADA: '{patron}' en mensaje: {mensaje}")
             return True
     
+    # Verificación adicional con lista de triggers
     for trigger in TRIGGER_CRISIS:
         if trigger in mensaje:
             print(f"🚨 CRISIS DETECTADA: '{trigger}' en mensaje: {mensaje}")
@@ -599,8 +611,7 @@ def manejar_comando_suscripcion(user_phone, user_message):
         "cómo pago", "cómo pagar", "transferencia", "depósito", "depositar", 
         "cómo deposito", "cuánto cuesta", "precio", "costo", "mensualidad", 
         "datos bancarios", "número de cuenta", "clabe", "banco", "quiero pagar", 
-        "deseo pagar", "informes", "información", "cómo pago", "cómo me suscribo", 
-        "cómo renovar"
+        "deseo pagar", "informes", "información", "cómo me suscribo", "cómo renovar"
     ]
     
     for trigger in triggers_suscripcion:
