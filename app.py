@@ -104,9 +104,9 @@ MENSAJE_SUSCRIPCION_ACTIVA = """
 
 # ✅ MENSAJE DE PRIVACIDAD PARA SESIÓN 1
 MENSAJE_PRIVACIDAD = """
-🔒 **Política de Privacidad de Alma**
+🔒 **Política de privacidad de Alma**
 
-🌱 **Cada sesión es nueva** - La sesión diaria no guarda contexto, protegemos tu privacidad.
+🌱 **Cada sesión es nueva** - La conversación diaria no guarda datos sensibles.
 
 # ✅ LISTA DE TRABAJOS EMOCIONALES Y MEDITACIONES
 TRABAJOS_EMOCIONALES = {
