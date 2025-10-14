@@ -27,16 +27,16 @@ PRECIO_SUSCRIPCION_MENSUAL = 200
 PRECIO_SUSCRIPCION_DIARIO = 6.67
 DIAS_SUSCRIPCION = 30
 
-# --- CONSTANTES DE SESIÓN DIARIA FLEXIBLE ---
-DURACION_SESION_NORMAL_MINUTOS = 30
-INTERVALO_RECORDATORIO_MINUTOS = 25 
-LIMITE_SESION_MAXIMO_MINUTOS = 45
+# --- CONSTANTES DE SESIÓN AMPLIADAS ---
+DURACION_SESION_NORMAL_MINUTOS = 60      # ↑ 60 minutos
+INTERVALO_RECORDATORIO_MINUTOS = 50      # ↑ Aviso a los 50 min  
+LIMITE_SESION_MAXIMO_MINUTOS = 75        # ↑ Límite máximo 75 min
 
 # INSTRUCCIÓN CLARA para DeepSeek
 AVISO_CIERRE = """
-INSTRUCCIÓN CRÍTICA DE CIERRE: Alma, la sesión de 30 minutos ha terminado. 
+INSTRUCCIÓN CRÍTICA DE CIERRE: Alma, la sesión de 60 minutos está por terminar.
 DEBES comenzar inmediatamente la fase de cierre con una sugerencia práctica de mindfulness.
-Finaliza la sesión con el mensaje de cierre y guarda el contexto. NO uses más de 15 minutos adicionales.
+Finaliza la sesión con el mensaje de cierre. Máximo 15 minutos adicionales.
 """
 
 # --- PROTOCOLO DE CRISIS PRECISO Y CONSERVADOR ---
@@ -117,21 +117,21 @@ MENSAJE_PRIVACIDAD = """
 🌱 **Cada sesión es nueva** - La conversación diaria no guarda datos sensibles.
 """
 
-# --- PROMPT SIMPLIFICADO Y NATURAL ---
+# --- PROMPT ACTUALIZADO CON LÍMITES CLAROS ---
 ALMA_PROMPT_BASE = """
 Eres "Alma" - chatbot especializado en mindfulness y apoyo emocional. NO eres terapeuta.
 
 **LÍMITES IMPORTANTES DE LA SESIÓN:**
-- Duración máxima: 30-45 minutos por día
+- Duración máxima: 60-75 minutos por día
 - Sesión única por día (se reinicia a medianoche)
-- Debes ayudar al usuario a cerrar gradualmente después de 25 minutos
+- Debes ayudar al usuario a cerrar gradualmente después de 50 minutos
 
 **TU ENFOQUE:**
 - Escucha activa y respuesta natural
 - Adapta tu estilo al tono del usuario  
 - Integra mindfulness de forma orgánica
 - Sé empático pero CONSCIENTE DEL TIEMPO
-- Después de 25 min, inicia transición suave al cierre
+- Después de 50 min, inicia transición suave al cierre
 
 **SESIÓN ACTUAL:**
 - Tiempo transcurrido: {tiempo_transcurrido} minutos
@@ -146,6 +146,77 @@ Eres "Alma" - chatbot especializado en mindfulness y apoyo emocional. NO eres te
 
 **INSTRUCCIÓN FINAL:** Responde como Alma de forma natural, pero siendo consciente de los límites de tiempo.
 """
+
+# --- SISTEMA DE ARCHIVO PERSISTENTE PARA CONTROL DIARIO ---
+SESSION_FILE = 'user_sessions.json'
+
+def cargar_sesiones_persistentes():
+    """Carga todas las sesiones desde el archivo JSON"""
+    try:
+        if os.path.exists(SESSION_FILE):
+            with open(SESSION_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return {}
+    except Exception as e:
+        print(f"❌ Error cargando sesiones persistentes: {e}")
+        return {}
+
+def guardar_sesiones_persistentes(sesiones):
+    """Guarda todas las sesiones en el archivo JSON"""
+    try:
+        with open(SESSION_FILE, 'w', encoding='utf-8') as f:
+            json.dump(sesiones, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print(f"❌ Error guardando sesiones persistentes: {e}")
+        return False
+
+def usuario_ya_uso_sesion_hoy(user_phone):
+    """Verifica si el usuario ya usó su sesión diaria (PERSISTENTE)"""
+    sesiones = cargar_sesiones_persistentes()
+    hoy = date.today().isoformat()
+    
+    if user_phone not in sesiones:
+        return False  # Nunca ha tenido sesión
+    
+    ultima_sesion_str = sesiones[user_phone].get('ultima_sesion_date')
+    
+    return ultima_sesion_str == hoy
+
+def registrar_sesion_diaria(user_phone):
+    """Registra que el usuario usó su sesión hoy"""
+    sesiones = cargar_sesiones_persistentes()
+    hoy = date.today().isoformat()
+    ahora = datetime.now().isoformat()
+    
+    if user_phone not in sesiones:
+        # Primera sesión del usuario
+        sesiones[user_phone] = {
+            'ultima_sesion_date': hoy,
+            'session_count': 1,
+            'created_at': ahora,
+            'actualizado_en': ahora
+        }
+    else:
+        # Usuario existente - actualizar
+        sesiones[user_phone].update({
+            'ultima_sesion_date': hoy,
+            'session_count': sesiones[user_phone].get('session_count', 0) + 1,
+            'actualizado_en': ahora
+        })
+    
+    return guardar_sesiones_persistentes(sesiones)
+
+def obtener_proximo_reset():
+    """Calcula cuándo se reinicia el límite diario"""
+    hoy = datetime.now()
+    manana = datetime(hoy.year, hoy.month, hoy.day) + timedelta(days=1)
+    tiempo_restante = manana - hoy
+    
+    horas = int(tiempo_restante.total_seconds() // 3600)
+    minutos = int((tiempo_restante.total_seconds() % 3600) // 60)
+    
+    return f"{horas} horas y {minutos} minutos"
 
 # ✅ SISTEMA DE PERFILES SIMPLIFICADO
 def get_user_profile(user_phone):
@@ -354,29 +425,18 @@ def save_user_session(user_phone, session):
     session['last_contact'] = datetime.now().isoformat()
     user_sessions[user_phone] = session
 
-def puede_iniciar_sesion(session):
-    last_date_str = session.get('last_session_date')
+def puede_iniciar_sesion(session, user_phone):
+    """Verifica límites de tiempo por sesión (no diarios aquí)"""
+    tiempo_transcurrido = datetime.now().timestamp() - session['session_start_time']
+    minutos_transcurridos = tiempo_transcurrido / 60
     
-    if not last_date_str:
-        return True
+    if minutos_transcurridos >= LIMITE_SESION_MAXIMO_MINUTOS:
+        return {
+            "expirada": True,
+            "mensaje": f"¡Hola! Has alcanzado el límite máximo de {LIMITE_SESION_MAXIMO_MINUTOS} minutos por hoy. Tu progreso está guardado. ¡Podrás iniciar tu próxima sesión mañana! 🌱"
+        }
     
-    today = date.today()
-    
-    try:
-        last_date = datetime.strptime(last_date_str, '%Y-%m-%d').date()
-    except ValueError:
-        return True
-        
-    if last_date < today:
-        return True
-    else:
-        tomorrow = today + timedelta(days=1)
-        medianoche = datetime(tomorrow.year, tomorrow.month, tomorrow.day)
-        
-        tiempo_restante = medianoche - datetime.now()
-        horas = int(tiempo_restante.total_seconds() // 3600)
-        minutos = int((tiempo_restante.total_seconds() % 3600) // 60)
-        return {"horas": horas, "minutos": minutos}
+    return True
 
 def debe_recordar_cierre(session):
     if session.get('recordatorio_enviado', False):
@@ -552,7 +612,7 @@ def ejecutar_limpieza_automatica():
     thread.start()
     print("✅ Sistema de limpieza automática INICIADO")
 
-# --- ENDPOINT PRINCIPAL SIMPLIFICADO ---
+# --- ENDPOINT PRINCIPAL ACTUALIZADO ---
 @app.route('/webhook', methods=['POST'])
 def webhook():
     try:
@@ -574,7 +634,7 @@ def webhook():
             })
             return enviar_respuesta_twilio(MENSAJE_PRIVACIDAD, user_phone)
         
-        # 1. VERIFICAR ACCESO
+        # 1. VERIFICAR ACCESO (trial/suscripción)
         if not usuario_puede_chatear(user_phone):
             return enviar_respuesta_twilio(MENSAJE_INVITACION_SUSCRIPCION, user_phone)
         
@@ -583,24 +643,33 @@ def webhook():
         if respuesta_suscripcion:
             return enviar_respuesta_twilio(respuesta_suscripcion, user_phone)
         
-        # 3. OBTENER SESIÓN
+        # 3. ✅ VERIFICAR LÍMITE DIARIO PERSISTENTE
+        if usuario_ya_uso_sesion_hoy(user_phone):
+            tiempo_restante = obtener_proximo_reset()
+            mensaje_bloqueo = f"¡Hola! Ya disfrutaste tu sesión de Alma de hoy. Podrás iniciar tu próxima sesión en {tiempo_restante}. ¡Estaré aquí para ti! 🌱"
+            return enviar_respuesta_twilio(mensaje_bloqueo, user_phone)
+        
+        # 4. OBTENER SESIÓN
         session = get_user_session(user_phone)
 
-        # 4. GESTIÓN DE RESTRICCIÓN DIARIA
-        restriccion = puede_iniciar_sesion(session)
+        # 5. VERIFICAR LÍMITE DE TIEMPO POR SESIÓN
+        restriccion = puede_iniciar_sesion(session, user_phone)
         if restriccion is not True:
-            horas = restriccion['horas']
-            minutos = restriccion['minutos']
-            alma_response = f"¡Hola! Tu sesión de Alma de hoy ya ha concluido. Podrás iniciar tu próxima sesión mañana (en {horas} horas y {minutos} minutos). ¡Estaré aquí para ti! 🌱"
-            return enviar_respuesta_twilio(alma_response, user_phone)
+            # Registrar que completó sesión hoy
+            registrar_sesion_diaria(user_phone)
+            
+            # Limpiar sesión en memoria
+            user_sessions.pop(user_phone, None)
+            
+            return enviar_respuesta_twilio(restriccion['mensaje'], user_phone)
         
-        # 5. PROTOCOLO DE CRISIS PRECISO
+        # 6. PROTOCOLO DE CRISIS PRECISO
         if detectar_crisis_real(user_message):
             session['crisis_count'] += 1
             save_user_session(user_phone, session)
             return enviar_respuesta_crisis(user_phone)
 
-        # 6. GESTIÓN DE TIEMPO: LÍMITE FORZADO
+        # 7. GESTIÓN DE TIEMPO: LÍMITE FORZADO
         tiempo_transcurrido_minutos = int((datetime.now().timestamp() - session['session_start_time']) / 60)
         
         if tiempo_transcurrido_minutos >= LIMITE_SESION_MAXIMO_MINUTOS:
@@ -611,6 +680,9 @@ def webhook():
                 'ultimo_tema': tema_hoy
             })
             
+            # ✅ REGISTRAR SESIÓN COMPLETADA EN ARCHIVO PERSISTENTE
+            registrar_sesion_diaria(user_phone)
+            
             session['last_session_date'] = datetime.now().strftime('%Y-%m-%d')
             save_user_session(user_phone, session) 
             
@@ -619,19 +691,19 @@ def webhook():
             user_sessions.pop(user_phone, None)
             return enviar_respuesta_twilio(alma_response, user_phone)
         
-        # 7. RECORDATORIO DE CIERRE
+        # 8. RECORDATORIO DE CIERRE
         if debe_recordar_cierre(session):
             print(f"[{user_phone}] Inyectando instrucción de cierre a DeepSeek.")
             user_message = AVISO_CIERRE + " ||| Mensaje real del usuario: " + user_message
 
-        # 8. GENERAR RESPUESTA CON ALMA
+        # 9. GENERAR RESPUESTA CON ALMA
         prompt = construir_prompt_alma(user_message, session, user_phone)
         print(f"📝 PROMPT ENVIADO A DEEPSEEK:\n{prompt}")
         
         alma_response = llamar_deepseek(prompt)
         print(f"💬 RESPUESTA DE ALMA: {alma_response}")
         
-        # 9. GUARDAR HISTORIAL
+        # 10. GUARDAR HISTORIAL
         session['conversation_history'].append({
             'user': user_message,
             'alma': alma_response,
@@ -643,7 +715,7 @@ def webhook():
             
         save_user_session(user_phone, session)
         
-        # 10. ENVIAR RESPUESTA
+        # 11. ENVIAR RESPUESTA
         return enviar_respuesta_twilio(alma_response, user_phone)
         
     except Exception as e:
@@ -655,6 +727,7 @@ def webhook():
 # --- ENDPOINTS TWILIO Y ADMIN (MANTENIDOS) ---
 def enviar_respuesta_twilio(mensaje, telefono):
     from twilio.rest import Client
+    from twilio.base.exceptions import TwilioRestException
     
     account_sid = os.getenv('TWILIO_ACCOUNT_SID')
     auth_token = os.getenv('TWILIO_AUTH_TOKEN')
@@ -672,8 +745,11 @@ def enviar_respuesta_twilio(mensaje, telefono):
         )
         print(f"✅ Mensaje Twilio enviado: {message.sid}")
         return Response("OK", status=200)
+    except TwilioRestException as e:
+        print(f"❌ ERROR Twilio: {e.code} - {e.msg}")
+        return Response("OK", status=200)
     except Exception as e:
-        print(f"❌ Error al enviar mensaje Twilio: {e}")
+        print(f"❌ Error general al enviar mensaje: {e}")
         return Response("OK", status=200)
 
 @app.route('/admin/activar/<user_phone>', methods=['POST'])
@@ -697,12 +773,15 @@ def admin_activar_suscripcion(user_phone):
 
 @app.route('/health', methods=['GET'])
 def health_check():
+    sesiones_persistentes = cargar_sesiones_persistentes()
+    
     return {
         "status": "healthy", 
         "service": "Alma Chatbot",
         "users_activos": len(user_sessions),
         "perfiles_registrados": len(user_profiles),
         "suscripciones_activas": sum(1 for s in paid_subscriptions.values() if s['estado'] == 'activo'),
+        "usuarios_persistentes": len(sesiones_persistentes),
         "timestamp": datetime.now().isoformat()
     }
 
@@ -711,14 +790,14 @@ if __name__ == '__main__':
     ejecutar_recordatorios_automaticos()
     ejecutar_limpieza_automatica()
     
-    print("🤖 Alma Chatbot INICIADO - Versión Natural y Adaptativa")
+    print("🤖 Alma Chatbot INICIADO - Versión Mejorada")
     print(f"📞 Número comprobantes: {NUMERO_COMPROBANTES}")
     print("🎯 CARACTERÍSTICAS IMPLEMENTADAS:")
-    print("   ✅ Alma completamente natural y adaptable")
-    print("   ✅ Protocolo de crisis PRECISO y conservador")
-    print("   ✅ No activa con expresiones normales de desahogo")
-    print("   ✅ Sistema de suscripciones mantenido")
-    print("   ✅ Conversación orgánica y fluida")
+    print("   ✅ Sesiones de 60-75 minutos (compensa delays)")
+    print("   ✅ Control diario PERSISTENTE con archivo JSON") 
+    print("   ✅ Alma consciente de límites de tiempo")
+    print("   ✅ Protocolo de crisis preciso")
+    print("   ✅ Sistema anti-trampa intra-día")
     
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
