@@ -104,24 +104,9 @@ MENSAJE_SUSCRIPCION_ACTIVA = """
 
 # ✅ MENSAJE DE PRIVACIDAD PARA SESIÓN 1
 MENSAJE_PRIVACIDAD = """
-🔒 **Política de Privacidad Alma**
+🔒 **Política de Privacidad de Alma**
 
-📊 **Qué guardamos:**
-• Género y edad (para personalización de respuestas)
-• Temas generales (ej: "trabajo", "relaciones")  
-• Tipo de meditación/trabajo emocional
-• Conteo de sesiones completadas
-
-🚫 **Qué NUNCA guardamos:**
-• Conversaciones completas
-• Experiencias personales detalladas
-• Datos sensibles o de salud
-• Información que te identifique
-
-🌱 **Cada sesión es nueva** - comenzamos fresco solo con datos que respetan tu anonimato.
-
-Para personalizar tu experiencia, ¿me compartes tu género y edad?
-"""
+🌱 **Cada sesión es nueva** - La sesión diaria no guarda contexto, protegemos tu privacidad.
 
 # ✅ LISTA DE TRABAJOS EMOCIONALES Y MEDITACIONES
 TRABAJOS_EMOCIONALES = {
