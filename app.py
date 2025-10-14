@@ -40,7 +40,7 @@ Finaliza la sesión con el mensaje de cierre y guarda el contexto. NO uses más 
 """
 
 # --- PROMPT SIMPLIFICADO DE ALMA ---
-TRIGGER_CRISIS = ["suicida", "autolesiones", "panico severa", "abuso", "depresion profunda", "matarme", "morir", "quiero morir", "acabar con todo"]
+TRIGGER_CRISIS = ["suicidarme", "suicidio", "pensamiento suicida", "autolesiones", "no puedo seguir ", "no puedo más","matarme", "quiero morir", "quisiera morir", "quisiera morirme", "acabar con mi vida","quitarme la vida"]
 
 # --- MENSAJES COMERCIALES ---
 MENSAJE_SUSCRIPCION = f"""
