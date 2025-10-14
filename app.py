@@ -15,10 +15,13 @@ DEEPSEEK_URL = "https://api.deepseek.com/chat/completions"
 TWILIO_WHATSAPP_NUMBER = os.getenv('TWILIO_WHATSAPP_NUMBER', 'whatsapp:+14155238886')
 NUMERO_COMPROBANTES = "833 152 06 YY"
 
-# Almacenamiento en memoria
-user_sessions = {}
-user_subscriptions = {}
-paid_subscriptions = {}
+# Almacenamiento en memoria (solo para caché temporal)
+user_sessions = {}  # Sesiones activas en memoria
+
+# --- ARCHIVOS PERSISTENTES CRÍTICOS ---
+SESSION_FILE = 'user_sessions.json'           # Control diario
+PAID_SUBS_FILE = 'paid_subscriptions.json'    # Suscripciones pagadas
+TRIAL_SUBS_FILE = 'trial_subscriptions.json'  # Trials de usuarios
 
 # --- CONSTANTES COMERCIALES ---
 DIAS_TRIAL_GRATIS = 21
@@ -139,29 +142,41 @@ Eres "Alma" - chatbot especializado en mindfulness y apoyo emocional. NO eres te
 **INSTRUCCIÓN FINAL:** Responde como Alma de forma natural, pero siendo consciente de los límites de tiempo.
 """
 
-# --- SISTEMA DE ARCHIVO PERSISTENTE PARA CONTROL DIARIO ---
-SESSION_FILE = 'user_sessions.json'
+# --- SISTEMA PERSISTENTE UNIFICADO ---
 
-def cargar_sesiones_persistentes():
-    """Carga todas las sesiones desde el archivo JSON"""
+def cargar_json_safe(archivo):
+    """Carga archivo JSON con manejo robusto de errores"""
     try:
-        if os.path.exists(SESSION_FILE):
-            with open(SESSION_FILE, 'r', encoding='utf-8') as f:
+        if os.path.exists(archivo):
+            with open(archivo, 'r', encoding='utf-8') as f:
                 return json.load(f)
         return {}
     except Exception as e:
-        print(f"❌ Error cargando sesiones persistentes: {e}")
+        print(f"❌ Error cargando {archivo}: {e}")
+        # Crear backup del archivo corrupto
+        if os.path.exists(archivo):
+            backup_name = f"{archivo}.backup.{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            os.rename(archivo, backup_name)
+            print(f"📦 Backup creado: {backup_name}")
         return {}
 
-def guardar_sesiones_persistentes(sesiones):
-    """Guarda todas las sesiones en el archivo JSON"""
+def guardar_json_safe(archivo, datos):
+    """Guarda archivo JSON con manejo robusto de errores"""
     try:
-        with open(SESSION_FILE, 'w', encoding='utf-8') as f:
-            json.dump(sesiones, f, ensure_ascii=False, indent=2)
+        with open(archivo, 'w', encoding='utf-8') as f:
+            json.dump(datos, f, ensure_ascii=False, indent=2)
         return True
     except Exception as e:
-        print(f"❌ Error guardando sesiones persistentes: {e}")
+        print(f"❌ Error guardando {archivo}: {e}")
         return False
+
+# --- CONTROL DIARIO PERSISTENTE ---
+
+def cargar_sesiones_persistentes():
+    return cargar_json_safe(SESSION_FILE)
+
+def guardar_sesiones_persistentes(sesiones):
+    return guardar_json_safe(SESSION_FILE, sesiones)
 
 def usuario_ya_uso_sesion_hoy(user_phone):
     """Verifica si el usuario ya usó su sesión diaria (PERSISTENTE)"""
@@ -169,10 +184,9 @@ def usuario_ya_uso_sesion_hoy(user_phone):
     hoy = date.today().isoformat()
     
     if user_phone not in sesiones:
-        return False  # Nunca ha tenido sesión
+        return False
     
     ultima_sesion_str = sesiones[user_phone].get('ultima_sesion_date')
-    
     return ultima_sesion_str == hoy
 
 def registrar_sesion_diaria(user_phone):
@@ -182,7 +196,6 @@ def registrar_sesion_diaria(user_phone):
     ahora = datetime.now().isoformat()
     
     if user_phone not in sesiones:
-        # Primera sesión del usuario
         sesiones[user_phone] = {
             'ultima_sesion_date': hoy,
             'session_count': 1,
@@ -190,7 +203,6 @@ def registrar_sesion_diaria(user_phone):
             'actualizado_en': ahora
         }
     else:
-        # Usuario existente - actualizar
         sesiones[user_phone].update({
             'ultima_sesion_date': hoy,
             'session_count': sesiones[user_phone].get('session_count', 0) + 1,
@@ -210,82 +222,149 @@ def obtener_proximo_reset():
     
     return f"{horas} horas y {minutos} minutos"
 
-# --- SISTEMA DE SUSCRIPCIONES PAGADAS (MANTENIDO) ---
-def inicializar_suscripcion_paga(user_phone):
+# --- SISTEMA DE TRIALS PERSISTENTE ---
+
+def cargar_trials_persistentes():
+    return cargar_json_safe(TRIAL_SUBS_FILE)
+
+def guardar_trials_persistentes(trials):
+    return guardar_json_safe(TRIAL_SUBS_FILE, trials)
+
+def get_user_subscription(user_phone):
+    """Obtiene trial del usuario (PERSISTENTE)"""
+    trials = cargar_trials_persistentes()
+    
+    if user_phone not in trials:
+        # Crear nuevo trial persistente
+        trials[user_phone] = {
+            'trial_start_date': datetime.now().strftime('%Y-%m-%d'),
+            'trial_end_date': (datetime.now() + timedelta(days=DIAS_TRIAL_GRATIS)).strftime('%Y-%m-%d'),
+            'is_subscribed': False,
+            'created_at': datetime.now().isoformat()
+        }
+        guardar_trials_persistentes(trials)
+    
+    return trials[user_phone]
+
+def verificar_trial_activo(user_phone):
+    """Verifica si el trial está activo (PERSISTENTE)"""
+    subscription = get_user_subscription(user_phone)
+    trial_end = datetime.strptime(subscription['trial_end_date'], '%Y-%m-%d').date()
+    hoy = datetime.now().date()
+    return hoy <= trial_end
+
+def dias_restantes_trial(user_phone):
+    """Días restantes de trial (PERSISTENTE)"""
+    subscription = get_user_subscription(user_phone)
+    trial_end = datetime.strptime(subscription['trial_end_date'], '%Y-%m-%d').date()
+    hoy = datetime.now().date()
+    return max(0, (trial_end - hoy).days)
+
+# --- SISTEMA DE SUSCRIPCIONES PAGADAS PERSISTENTE ---
+
+def cargar_suscripciones_persistentes():
+    return cargar_json_safe(PAID_SUBS_FILE)
+
+def guardar_suscripcion_persistente(user_phone, sub_data):
+    """Guarda suscripción en archivo persistente"""
+    subs = cargar_suscripciones_persistentes()
+    subs[user_phone] = sub_data
+    return guardar_json_safe(PAID_SUBS_FILE, subs)
+
+def activar_suscripcion(user_phone):
+    """Activa suscripción (PERSISTENTE + actualiza trial)"""
     fecha_activacion = datetime.now().date()
     fecha_vencimiento = fecha_activacion + timedelta(days=DIAS_SUSCRIPCION)
     
-    paid_subscriptions[user_phone] = {
+    sub_data = {
         'fecha_activacion': fecha_activacion.isoformat(),
         'fecha_vencimiento': fecha_vencimiento.isoformat(),
         'estado': 'activo',
         'recordatorio_7d_enviado': False,
         'recordatorio_3d_enviado': False,
         'recordatorio_0d_enviado': False,
-        'activado_por_admin': False
+        'activado_por_admin': True,
+        'activado_en': datetime.now().isoformat()
     }
-    return paid_subscriptions[user_phone]
-
-def activar_suscripcion(user_phone):
-    if user_phone in paid_subscriptions:
-        fecha_activacion = datetime.now().date()
-        fecha_vencimiento = fecha_activacion + timedelta(days=DIAS_SUSCRIPCION)
-    else:
-        fecha_activacion = datetime.now().date()
-        fecha_vencimiento = fecha_activacion + timedelta(days=DIAS_SUSCRIPCION)
-        
-    paid_subscriptions[user_phone] = {
-        'fecha_activacion': fecha_activacion.isoformat(),
-        'fecha_vencimiento': fecha_vencimiento.isoformat(),
-        'estado': 'activo',
-        'recordatorio_7d_enviado': False,
-        'recordatorio_3d_enviado': False,
-        'recordatorio_0d_enviado': False,
-        'activado_por_admin': True
-    }
-    return paid_subscriptions[user_phone]
+    
+    # 1. Guardar en suscripciones pagadas
+    guardar_suscripcion_persistente(user_phone, sub_data)
+    
+    # 2. Actualizar trial para marcar como suscriptor
+    trials = cargar_trials_persistentes()
+    if user_phone in trials:
+        trials[user_phone]['is_subscribed'] = True
+        trials[user_phone]['actualizado_en'] = datetime.now().isoformat()
+        guardar_trials_persistentes(trials)
+    
+    return sub_data
 
 def verificar_suscripcion_activa(user_phone):
-    if user_phone not in paid_subscriptions:
+    """Verifica suscripción activa (PERSISTENTE)"""
+    subs = cargar_suscripciones_persistentes()
+    
+    if user_phone not in subs:
         return False
     
-    sub = paid_subscriptions[user_phone]
+    sub = subs[user_phone]
     fecha_vencimiento = datetime.strptime(sub['fecha_vencimiento'], '%Y-%m-%d').date()
     hoy = datetime.now().date()
     
     if hoy > fecha_vencimiento:
         sub['estado'] = 'vencido'
+        guardar_suscripcion_persistente(user_phone, sub)
         return False
     
     return True
 
 def dias_restantes_suscripcion(user_phone):
-    if user_phone not in paid_subscriptions:
+    """Días restantes de suscripción (PERSISTENTE)"""
+    subs = cargar_suscripciones_persistentes()
+    
+    if user_phone not in subs:
         return 0
     
-    sub = paid_subscriptions[user_phone]
+    sub = subs[user_phone]
     fecha_vencimiento = datetime.strptime(sub['fecha_vencimiento'], '%Y-%m-%d').date()
     hoy = datetime.now().date()
     
     return max(0, (fecha_vencimiento - hoy).days)
 
-# --- SISTEMA DE RECORDATORIOS AUTOMÁTICOS (MANTENIDO) ---
+# --- SISTEMA UNIFICADO DE ACCESO ---
+
+def usuario_puede_chatear(user_phone):
+    """Verificación unificada de acceso (PERSISTENTE)"""
+    # 1. Primero verificar suscripción pagada
+    if verificar_suscripcion_activa(user_phone):
+        return True
+    
+    # 2. Luego verificar trial activo
+    if verificar_trial_activo(user_phone):
+        return True
+    
+    return False
+
+# --- SISTEMA DE RECORDATORIOS AUTOMÁTICOS (PERSISTENTE) ---
+
 def ejecutar_recordatorios_automaticos():
-    """Envía recordatorios automáticos de suscripción."""
+    """Envía recordatorios automáticos de suscripción (PERSISTENTE)"""
     def tarea_background():
         while True:
             try:
                 hoy = datetime.now().date()
                 print(f"🔔 Verificando recordatorios para {hoy}")
                 
-                for user_phone, sub in paid_subscriptions.items():
+                subs = cargar_suscripciones_persistentes()
+                subs_actualizados = False
+                
+                for user_phone, sub in subs.items():
                     if sub['estado'] != 'activo':
                         continue
                         
                     fecha_vencimiento = datetime.strptime(sub['fecha_vencimiento'], '%Y-%m-%d').date()
                     dias_restantes = (fecha_vencimiento - hoy).days
                     
-                    if dias_restantes == 7 and not sub['recordatorio_7d_enviado']:
+                    if dias_restantes == 7 and not sub.get('recordatorio_7d_enviado', False):
                         mensaje = f"""
 🔔 **Recordatorio de Suscripción**
 
@@ -298,9 +377,10 @@ Para renovar y evitar interrupciones en tu acompañamiento:
 """
                         enviar_respuesta_twilio(mensaje, user_phone)
                         sub['recordatorio_7d_enviado'] = True
+                        subs_actualizados = True
                         print(f"📤 Recordatorio 7d enviado a {user_phone}")
                         
-                    elif dias_restantes == 3 and not sub['recordatorio_3d_enviado']:
+                    elif dias_restantes == 3 and not sub.get('recordatorio_3d_enviado', False):
                         mensaje = f"""
 ⚠️ **Recordatorio Urgente**
 
@@ -313,9 +393,10 @@ Para renovar y evitar interrupciones en tu acompañamiento:
 """
                         enviar_respuesta_twilio(mensaje, user_phone)
                         sub['recordatorio_3d_enviado'] = True
+                        subs_actualizados = True
                         print(f"📤 Recordatorio 3d enviado a {user_phone}")
                         
-                    elif dias_restantes == 0 and not sub['recordatorio_0d_enviado']:
+                    elif dias_restantes == 0 and not sub.get('recordatorio_0d_enviado', False):
                         mensaje = f"""
 🚨 **Suscripción por Vencer Hoy**
 
@@ -328,45 +409,26 @@ Para renovar y evitar interrupciones en tu acompañamiento:
 """
                         enviar_respuesta_twilio(mensaje, user_phone)
                         sub['recordatorio_0d_enviado'] = True
+                        subs_actualizados = True
                         print(f"📤 Recordatorio 0d enviado a {user_phone}")
                 
-                time.sleep(3600)
+                # Guardar cambios si hubo actualizaciones
+                if subs_actualizados:
+                    guardar_json_safe(PAID_SUBS_FILE, subs)
+                    print("💾 Suscripciones actualizadas después de recordatorios")
+                
+                time.sleep(3600)  # Revisar cada hora
+                
             except Exception as e:
                 print(f"❌ Error en recordatorios automáticos: {e}")
-                time.sleep(300)
+                time.sleep(300)  # Reintentar en 5 minutos
     
     thread = Thread(target=tarea_background, daemon=True)
     thread.start()
-    print("✅ Sistema de recordatorios automáticos INICIADO")
+    print("✅ Sistema de recordatorios automáticos INICIADO (PERSISTENTE)")
 
-# --- SISTEMA DE TRIAL Y ACCESO (MANTENIDO) ---
-def get_user_subscription(user_phone):
-    if user_phone not in user_subscriptions:
-        user_subscriptions[user_phone] = {
-            'trial_start_date': datetime.now().strftime('%Y-%m-%d'),
-            'trial_end_date': (datetime.now() + timedelta(days=DIAS_TRIAL_GRATIS)).strftime('%Y-%m-%d'),
-            'is_subscribed': False
-        }
-    return user_subscriptions[user_phone]
+# --- FUNCIONES DE SESIÓN EN MEMORIA ---
 
-def verificar_trial_activo(subscription):
-    trial_end = datetime.strptime(subscription['trial_end_date'], '%Y-%m-%d').date()
-    hoy = datetime.now().date()
-    return hoy <= trial_end
-
-def dias_restantes_trial(subscription):
-    trial_end = datetime.strptime(subscription['trial_end_date'], '%Y-%m-%d').date()
-    hoy = datetime.now().date()
-    return max(0, (trial_end - hoy).days)
-
-def usuario_puede_chatear(user_phone):
-    if verificar_suscripcion_activa(user_phone):
-        return True
-    
-    subscription = get_user_subscription(user_phone)
-    return verificar_trial_activo(subscription)
-
-# --- FUNCIONES SIMPLIFICADAS DE ALMA ---
 def get_user_session(user_phone):
     if user_phone not in user_sessions:
         user_sessions[user_phone] = {
@@ -411,6 +473,7 @@ def debe_recordar_cierre(session):
     return False
 
 # --- DETECCIÓN DE CRISIS PRECISA Y CONSERVADORA ---
+
 def detectar_crisis_real(user_message):
     """
     Detección MUY conservadora - solo activa con suicidio explícito
@@ -418,7 +481,6 @@ def detectar_crisis_real(user_message):
     """
     mensaje = user_message.lower().strip()
     
-    # Patrones que requieren contexto suicida explícito
     patrones_suicidio_explicito = [
         r"quiero suicidarme",
         r"me voy a suicidar", 
@@ -436,7 +498,6 @@ def detectar_crisis_real(user_message):
             print(f"🚨 CRISIS DETECTADA: '{patron}' en mensaje: {mensaje}")
             return True
     
-    # Verificación adicional con lista de triggers
     for trigger in TRIGGER_CRISIS:
         if trigger in mensaje:
             print(f"🚨 CRISIS DETECTADA: '{trigger}' en mensaje: {mensaje}")
@@ -529,81 +590,44 @@ def manejar_comando_suscripcion(user_phone, user_message):
     if "suscribir" in message_lower or "renovar" in message_lower:
         return MENSAJE_SUSCRIPCION
         
+    # Detección automática de comprobante
+    if "comprobante" in message_lower or "pago" in message_lower or "transferencia" in message_lower:
+        return "📋 **Comprobante recibido**\nHemos registrado tu comprobante. Un administrador activará tu suscripción en las próximas 24 horas. ¡Gracias! 🌱"
+        
     return None
 
-# ✅ LIMPIEZA MEJORADA - ÚTIL AHORA Y PREPARADA PARA PAGO
+# ✅ LIMPIEZA MEJORADA - AHORA SOLO LIMPIA MEMORIA TEMPORAL
 def ejecutar_limpieza_automatica():
-    """Limpieza optimizada para Render gratis y preparada para pago"""
+    """Limpia solo sesiones en memoria, datos críticos están en JSON"""
     def tarea_limpieza():
         while True:
             try:
-                print("🧹 Ejecutando limpieza optimizada...")
+                print("🧹 Ejecutando limpieza de memoria...")
                 hoy = datetime.now()
                 
-                # 1. LIMPIEZA DE SESIONES EN MEMORIA (> 7 días)
-                # ✅ ÚTIL AHORA: Sesiones muy viejas que sobreviven reinicios breves
+                # Limpiar solo sesiones en memoria > 7 días
                 sesiones_limpiadas = 0
                 for phone in list(user_sessions.keys()):
                     session = user_sessions[phone]
                     last_contact = datetime.fromisoformat(session['last_contact'])
-                    if (hoy - last_contact).days > 7:  # 7 días, no 30
+                    if (hoy - last_contact).days > 7:
                         user_sessions.pop(phone, None)
                         sesiones_limpiadas += 1
                 
                 if sesiones_limpiadas > 0:
-                    print(f"🧹 Sesiones limpiadas: {sesiones_limpiadas}")
+                    print(f"🧹 Sesiones en memoria limpiadas: {sesiones_limpiadas}")
                 
-                # 2. LIMPIEZA DE TRIALS EXPIRADOS (> 30 días del trial)
-                # ✅ ÚTIL AHORA: Trials que ya vencieron hace mucho
-                trials_limpiados = 0
-                for phone in list(user_subscriptions.keys()):
-                    sub = user_subscriptions[phone]
-                    trial_end = datetime.strptime(sub['trial_end_date'], '%Y-%m-%d')
-                    
-                    # Si el trial terminó hace más de 30 días y no es suscriptor
-                    if (hoy.date() - trial_end.date()).days > 30 and not sub['is_subscribed']:
-                        user_subscriptions.pop(phone, None)
-                        trials_limpiados += 1
+                print(f"📊 Estado actual - Sesiones en memoria: {len(user_sessions)}")
                 
-                if trials_limpiados > 0:
-                    print(f"🧹 Trials limpiados: {trials_limpiados}")
-                
-                # 3. ✅ NUEVO: LIMPIEZA DE JSON (> 90 días inactivos)
-                # PREPARADO PARA PAGO: Cuando JSON crezca mucho
-                sesiones = cargar_sesiones_persistentes()
-                usuarios_json_limpiados = 0
-                hace_90_dias = (hoy - timedelta(days=90)).date().isoformat()
-                
-                for phone in list(sesiones.keys()):
-                    ultima_sesion = sesiones[phone].get('ultima_sesion_date')
-                    if ultima_sesion and ultima_sesion < hace_90_dias:
-                        # Verificar que no tenga suscripción activa
-                        if not verificar_suscripcion_activa(phone):
-                            sesiones.pop(phone, None)
-                            usuarios_json_limpiados += 1
-                
-                if usuarios_json_limpiados > 0:
-                    guardar_sesiones_persistentes(sesiones)
-                    print(f"🧹 Usuarios JSON limpiados: {usuarios_json_limpiados}")
-                
-                # 4. ✅ REPORTE DE ESTADO
-                print(f"📊 Estado después de limpieza:")
-                print(f"   - Sesiones en memoria: {len(user_sessions)}")
-                print(f"   - Trials en memoria: {len(user_subscriptions)}")
-                print(f"   - Usuarios en JSON: {len(sesiones)}")
-                
-                # ⏰ FRECUENCIA OPTIMIZADA
-                # Gratis: Cada 15 días (suficiente)
-                # Pago: Cambiar a 7 días cuando migres
-                time.sleep(86400 * 15)  # 15 días
+                time.sleep(86400 * 7)  # Cada 7 días
                 
             except Exception as e:
-                print(f"❌ Error en limpieza optimizada: {e}")
-                time.sleep(3600)  # Reintentar en 1 hora
+                print(f"❌ Error en limpieza: {e}")
+                time.sleep(3600)
     
     thread = Thread(target=tarea_limpieza, daemon=True)
     thread.start()
-    print("✅ Sistema de limpieza optimizada INICIADO")
+    print("✅ Sistema de limpieza de memoria INICIADO")
 
 # --- ENDPOINT PRINCIPAL ACTUALIZADO ---
 @app.route('/webhook', methods=['POST'])
@@ -617,7 +641,7 @@ def webhook():
         
         print(f"🔔 MENSAJE RECIBIDO de {user_phone}: {user_message}")
         
-        # 1. VERIFICAR ACCESO (trial/suscripción)
+        # 1. VERIFICAR ACCESO (sistema unificado persistente)
         if not usuario_puede_chatear(user_phone):
             return enviar_respuesta_twilio(MENSAJE_INVITACION_SUSCRIPCION, user_phone)
         
@@ -626,18 +650,17 @@ def webhook():
         if respuesta_suscripcion:
             return enviar_respuesta_twilio(respuesta_suscripcion, user_phone)
         
-        # 3. ✅ VERIFICAR LÍMITE DIARIO PERSISTENTE
+        # 3. VERIFICAR LÍMITE DIARIO PERSISTENTE
         if usuario_ya_uso_sesion_hoy(user_phone):
             tiempo_restante = obtener_proximo_reset()
             mensaje_bloqueo = f"¡Hola! Ya disfrutaste tu sesión de Alma de hoy. Podrás iniciar tu próxima sesión en {tiempo_restante}. ¡Estaré aquí para ti! 🌱"
             return enviar_respuesta_twilio(mensaje_bloqueo, user_phone)
         
-        # 4. OBTENER SESIÓN
+        # 4. OBTENER SESIÓN EN MEMORIA
         session = get_user_session(user_phone)
 
-        # 5. ✅ MOSTRAR PRIVACIDAD SOLO AL INICIO DE CONVERSACIÓN
+        # 5. MOSTRAR PRIVACIDAD SOLO AL INICIO DE CONVERSACIÓN
         if len(session['conversation_history']) == 0:
-            # Es el primer mensaje de la sesión - mostrar privacidad breve
             enviar_respuesta_twilio(MENSAJE_PRIVACIDAD, user_phone)
 
         # 6. VERIFICAR LÍMITE DE TIEMPO POR SESIÓN
@@ -645,10 +668,7 @@ def webhook():
         if restriccion is not True:
             # Registrar que completó sesión hoy
             registrar_sesion_diaria(user_phone)
-            
-            # Limpiar sesión en memoria
             user_sessions.pop(user_phone, None)
-            
             return enviar_respuesta_twilio(restriccion['mensaje'], user_phone)
         
         # 7. PROTOCOLO DE CRISIS PRECISO
@@ -661,11 +681,9 @@ def webhook():
         tiempo_transcurrido_minutos = int((datetime.now().timestamp() - session['session_start_time']) / 60)
         
         if tiempo_transcurrido_minutos >= LIMITE_SESION_MAXIMO_MINUTOS:
-            # ✅ REGISTRAR SESIÓN COMPLETADA EN ARCHIVO PERSISTENTE
+            # REGISTRAR SESIÓN COMPLETADA
             registrar_sesion_diaria(user_phone)
-            
             alma_response = f"Gracias por tu tiempo. Hemos alcanzado el límite máximo de {LIMITE_SESION_MAXIMO_MINUTOS} minutos por hoy. Tu progreso está guardado. ¡Podrás iniciar tu próxima sesión mañana! 🌱"
-            
             user_sessions.pop(user_phone, None)
             return enviar_respuesta_twilio(alma_response, user_phone)
         
@@ -679,7 +697,7 @@ def webhook():
         alma_response = llamar_deepseek(prompt)
         print(f"💬 RESPUESTA DE ALMA: {alma_response}")
         
-        # 11. GUARDAR HISTORIAL
+        # 11. GUARDAR HISTORIAL EN MEMORIA
         session['conversation_history'].append({
             'user': user_message,
             'alma': alma_response,
@@ -700,7 +718,8 @@ def webhook():
         traceback.print_exc()
         return enviar_respuesta_twilio("Lo siento, estoy teniendo dificultades técnicas. ¿Podrías intentarlo de nuevo? 🌱", user_phone)
 
-# --- ENDPOINTS TWILIO Y ADMIN (MANTENIDOS) ---
+# --- ENDPOINTS TWILIO Y ADMIN ---
+
 def enviar_respuesta_twilio(mensaje, telefono):
     from twilio.rest import Client
     from twilio.base.exceptions import TwilioRestException
@@ -732,7 +751,8 @@ def enviar_respuesta_twilio(mensaje, telefono):
 def admin_activar_suscripcion(user_phone):
     try:
         activar_suscripcion(user_phone)
-        sub = paid_subscriptions[user_phone]
+        subs = cargar_suscripciones_persistentes()
+        sub = subs[user_phone]
         
         mensaje = MENSAJE_SUSCRIPCION_ACTIVA.format(
             fecha_vencimiento=datetime.strptime(sub['fecha_vencimiento'], '%Y-%m-%d').strftime('%d/%m/%Y')
@@ -747,16 +767,34 @@ def admin_activar_suscripcion(user_phone):
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
 
+@app.route('/admin/estado', methods=['GET'])
+def admin_estado():
+    """Endpoint de administración para ver estado del sistema"""
+    sesiones = cargar_sesiones_persistentes()
+    trials = cargar_trials_persistentes()
+    subs = cargar_suscripciones_persistentes()
+    
+    return {
+        "status": "healthy",
+        "service": "Alma Chatbot - Sistema Persistente",
+        "sesiones_diarias": len(sesiones),
+        "usuarios_trial": len(trials),
+        "suscripciones_activas": sum(1 for s in subs.values() if s['estado'] == 'activo'),
+        "sessions_memoria": len(user_sessions),
+        "timestamp": datetime.now().isoformat()
+    }
+
 @app.route('/health', methods=['GET'])
 def health_check():
-    sesiones_persistentes = cargar_sesiones_persistentes()
+    sesiones = cargar_sesiones_persistentes()
+    subs = cargar_suscripciones_persistentes()
     
     return {
         "status": "healthy", 
-        "service": "Alma Chatbot",
+        "service": "Alma Chatbot - Sistema Persistente",
         "users_activos": len(user_sessions),
-        "suscripciones_activas": sum(1 for s in paid_subscriptions.values() if s['estado'] == 'activo'),
-        "usuarios_persistentes": len(sesiones_persistentes),
+        "suscripciones_activas": sum(1 for s in subs.values() if s['estado'] == 'activo'),
+        "usuarios_persistentes": len(sesiones),
         "timestamp": datetime.now().isoformat()
     }
 
@@ -765,14 +803,15 @@ if __name__ == '__main__':
     ejecutar_recordatorios_automaticos()
     ejecutar_limpieza_automatica()
     
-    print("🤖 Alma Chatbot INICIADO - Versión Simplificada")
+    print("🤖 Alma Chatbot INICIADO - SISTEMA 100% PERSISTENTE")
     print(f"📞 Número comprobantes: {NUMERO_COMPROBANTES}")
     print("🎯 CARACTERÍSTICAS IMPLEMENTADAS:")
-    print("   ✅ Sesiones de 60-75 minutos")
-    print("   ✅ Control diario PERSISTENTE con JSON") 
-    print("   ✅ Privacidad breve no invasiva")
-    print("   ✅ Sin tracking de temas/sesiones complejo")
-    print("   ✅ Sistema anti-trampa intra-día")
+    print("   ✅ Sistema PERSISTENTE completo (JSON)")
+    print("   ✅ Trials sobreviven reinicios") 
+    print("   ✅ Suscripciones pagadas garantizadas")
+    print("   ✅ Recordatorios automáticos persistentes")
+    print("   ✅ Recuperación robusta de archivos")
+    print("   ✅ Sesiones 60-75 minutos")
     
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
