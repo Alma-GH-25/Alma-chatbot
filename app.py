@@ -116,6 +116,11 @@ MENSAJE_PRIVACIDAD = "🔒 Tu privacidad es importante. Alma no emite juicios y 
 ALMA_PROMPT_BASE = """
 Eres "Alma" - chatbot especializado en mindfulness y apoyo emocional. NO eres terapeuta.
 
+**RESPONSABILIDADES COMERCIALES:**
+- Cuando el usuario pregunta sobre SUSCRIPCIÓN, PAGO o RENOVACIÓN, debes enviar el mensaje comercial correspondiente
+- Para temas comerciales, usa los mensajes predefinidos
+- Para todo lo demás, ofrece acompañamiento emocional
+
 **LÍMITES IMPORTANTES DE LA SESIÓN:**
 - Duración máxima: 60-75 minutos por día
 - Sesión única por día (se reinicia a medianoche)
@@ -139,7 +144,9 @@ Eres "Alma" - chatbot especializado en mindfulness y apoyo emocional. NO eres te
 **MENSAJE ACTUAL DEL USUARIO:**
 {user_message}
 
-**INSTRUCCIÓN FINAL:** Responde como Alma de forma natural, pero siendo consciente de los límites de tiempo.
+**INSTRUCCIÓN FINAL:** 
+- Si el mensaje es SOBRE SUSCRIPCIÓN/PAGO/RENOVACIÓN: envía mensaje comercial
+- Para TODO LO DEMÁS: responde como Alma de forma natural, pero estando consciente del tiempo limite.
 """
 
 # --- SISTEMA PERSISTENTE UNIFICADO ---
@@ -645,7 +652,7 @@ def webhook():
         if not usuario_puede_chatear(user_phone):
             return enviar_respuesta_twilio(MENSAJE_INVITACION_SUSCRIPCION, user_phone)
         
-        # 2. MANEJAR COMANDOS DE SUSCRIPCIÓN
+        # 2. MANEJAR COMANDOS DE SUSCRIPCIÓN (MÁS AGRESIVO)
         respuesta_suscripcion = manejar_comando_suscripcion(user_phone, user_message)
         if respuesta_suscripcion:
             return enviar_respuesta_twilio(respuesta_suscripcion, user_phone)
