@@ -44,7 +44,7 @@ TRIGGER_CRISIS = [
     "quiero suicidarme",
     "me voy a suicidar", 
     "voy a suicidarme",
-    "pensando en suicidarme",
+    "pensando en suicidio",
     "estoy pensando en suicidarme",
     "planeo suicidarme",
     "me quiero suicidar",
@@ -56,18 +56,15 @@ TRIGGER_CRISIS = [
     "quiero quitarme la vida",
     "voy a quitarme la vida",
     "me voy a quitar la vida",
-    "acabar con mi vida",
-    
-    # DESPEDIDAS SUICIDAS
-    "esta es la despedida",
-    "adiós para siempre",
-    "nunca más me verán",
-    
-    # MÉTODOS ESPECÍFICOS
-    "tomarme todas las pastillas",
+    "acabar con mi vida",  
     "saltar de un edificio",
+    "tirarme de un puente",
     "ahorcarme",
+    "colgarme"
     "dispararme"
+    "darme un tiro"
+    "cortarme las venas"
+    "cortar mis venas"
 ]
 
 # --- MENSAJES COMERCIALES ---
