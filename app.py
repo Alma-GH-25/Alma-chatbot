@@ -534,32 +534,79 @@ def manejar_comando_suscripcion(user_phone, user_message):
         
     return None
 
-# ✅ LIMPIEZA CADA 30 DÍAS DE INACTIVIDAD
+# ✅ LIMPIEZA MEJORADA - ÚTIL AHORA Y PREPARADA PARA PAGO
 def ejecutar_limpieza_automatica():
-    """Limpia datos de usuarios inactivos por 30 días"""
+    """Limpieza optimizada para Render gratis y preparada para pago"""
     def tarea_limpieza():
         while True:
             try:
-                print("🧹 Ejecutando limpieza de usuarios inactivos...")
+                print("🧹 Ejecutando limpieza optimizada...")
                 hoy = datetime.now()
                 
-                # Limpiar sesiones de usuarios inactivos > 30 días
+                # 1. LIMPIEZA DE SESIONES EN MEMORIA (> 7 días)
+                # ✅ ÚTIL AHORA: Sesiones muy viejas que sobreviven reinicios breves
+                sesiones_limpiadas = 0
                 for phone in list(user_sessions.keys()):
                     session = user_sessions[phone]
                     last_contact = datetime.fromisoformat(session['last_contact'])
-                    if (hoy - last_contact).days > 30:
+                    if (hoy - last_contact).days > 7:  # 7 días, no 30
                         user_sessions.pop(phone, None)
-                        print(f"🧹 Sesión limpiada: {phone}")
+                        sesiones_limpiadas += 1
                 
-                time.sleep(86400 * 15)  # Ejecutar cada 15 días
+                if sesiones_limpiadas > 0:
+                    print(f"🧹 Sesiones limpiadas: {sesiones_limpiadas}")
+                
+                # 2. LIMPIEZA DE TRIALS EXPIRADOS (> 30 días del trial)
+                # ✅ ÚTIL AHORA: Trials que ya vencieron hace mucho
+                trials_limpiados = 0
+                for phone in list(user_subscriptions.keys()):
+                    sub = user_subscriptions[phone]
+                    trial_end = datetime.strptime(sub['trial_end_date'], '%Y-%m-%d')
+                    
+                    # Si el trial terminó hace más de 30 días y no es suscriptor
+                    if (hoy.date() - trial_end.date()).days > 30 and not sub['is_subscribed']:
+                        user_subscriptions.pop(phone, None)
+                        trials_limpiados += 1
+                
+                if trials_limpiados > 0:
+                    print(f"🧹 Trials limpiados: {trials_limpiados}")
+                
+                # 3. ✅ NUEVO: LIMPIEZA DE JSON (> 90 días inactivos)
+                # PREPARADO PARA PAGO: Cuando JSON crezca mucho
+                sesiones = cargar_sesiones_persistentes()
+                usuarios_json_limpiados = 0
+                hace_90_dias = (hoy - timedelta(days=90)).date().isoformat()
+                
+                for phone in list(sesiones.keys()):
+                    ultima_sesion = sesiones[phone].get('ultima_sesion_date')
+                    if ultima_sesion and ultima_sesion < hace_90_dias:
+                        # Verificar que no tenga suscripción activa
+                        if not verificar_suscripcion_activa(phone):
+                            sesiones.pop(phone, None)
+                            usuarios_json_limpiados += 1
+                
+                if usuarios_json_limpiados > 0:
+                    guardar_sesiones_persistentes(sesiones)
+                    print(f"🧹 Usuarios JSON limpiados: {usuarios_json_limpiados}")
+                
+                # 4. ✅ REPORTE DE ESTADO
+                print(f"📊 Estado después de limpieza:")
+                print(f"   - Sesiones en memoria: {len(user_sessions)}")
+                print(f"   - Trials en memoria: {len(user_subscriptions)}")
+                print(f"   - Usuarios en JSON: {len(sesiones)}")
+                
+                # ⏰ FRECUENCIA OPTIMIZADA
+                # Gratis: Cada 15 días (suficiente)
+                # Pago: Cambiar a 7 días cuando migres
+                time.sleep(86400 * 15)  # 15 días
                 
             except Exception as e:
-                print(f"❌ Error en limpieza: {e}")
-                time.sleep(3600)
+                print(f"❌ Error en limpieza optimizada: {e}")
+                time.sleep(3600)  # Reintentar en 1 hora
     
     thread = Thread(target=tarea_limpieza, daemon=True)
     thread.start()
-    print("✅ Sistema de limpieza automática INICIADO")
+    print("✅ Sistema de limpieza optimizada INICIADO")
 
 # --- ENDPOINT PRINCIPAL ACTUALIZADO ---
 @app.route('/webhook', methods=['POST'])
