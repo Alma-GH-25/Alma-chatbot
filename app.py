@@ -35,33 +35,12 @@ LIMITE_SESION_MAXIMO_MINUTOS = 45
 # INSTRUCCIÓN CLARA para DeepSeek
 AVISO_CIERRE = """
 INSTRUCCIÓN CRÍTICA DE CIERRE: Alma, la sesión de 30 minutos ha terminado. 
-DEBES comenzar inmediatamente la Fase 3 (Sugerencia Práctica: 1 acción concreta + 1 herramienta mindfulness/ritual - ejemplo: escribir carta y quemar/romper, caminar, abrazar árbol - + felicitación al usuario por su avance). 
+DEBES comenzar inmediatamente la fase de cierre con una sugerencia práctica de mindfulness.
 Finaliza la sesión con el mensaje de cierre y guarda el contexto. NO uses más de 15 minutos adicionales.
 """
 
-# --- PROMPT Y LÓGICA DE ALMA ---
-CONTEXTO_PERSONALIZADO = {
-    "Mujer": {
-        "18-25": {"foco": "identidad, propósito, relaciones sanas", "lenguaje": "energético pero profundo", "metafora": "semilla que crece"},
-        "26-39": {"foco": "equilibrio vida-trabajo, realización", "lenguaje": "práctico y comprensivo", "metafora": "jardín en flor"},
-        "40+": {"foco": "reinvención, legado, aceptación", "lenguaje": "sabio y liberador", "metafora": "raíces profundas"},
-    },
-    "Hombre": {
-        "18-25": {"foco": "dirección de vida, masculinidad sana", "lenguaje": "motivador pero realista", "metafora": "arquitecto de vida"},
-        "26-39": {"foco": "proveedor emocional, paternidad, éxito redefinido", "lenguaje": "respetuoso y práctico", "metafora": "pilares fuertes"},
-        "40+": {"foco": "legado, salud, significado", "lenguaje": "directo pero vulnerable", "metafora": "biblioteca de experiencia"},
-    }
-}
-
+# --- PROMPT SIMPLIFICADO DE ALMA ---
 TRIGGER_CRISIS = ["suicida", "autolesiones", "panico severa", "abuso", "depresion profunda", "matarme", "morir", "quiero morir", "acabar con todo"]
-
-TRIGGER_EASTER_EGGS = {    
-    "proposito_vida": ["proposito", "para que vivo", "sentido", "legado", "misión de vida"],
-    "habitos_atomicos": ["habitos", "rutinas", "disciplina", "mejorar cada dia", "pequeños cambios"],    
-    "habitos_saludables": ["alcohol", "tabaco", "adicción", "fumar", "beber", "vicio", "antojo", "dejar de fumar", "dejar de beber", "porno", "pornografía"],
-    "toque_intimo": ["cariño", "corazón", "dulzura", "bombon", "apapacho", "ternura"],
-    "horoscopo_consciente": ["horoscopo", "astros", "signo", "ritual", "zodiaco"],
-}
 
 # --- MENSAJES COMERCIALES ---
 MENSAJE_SUSCRIPCION = f"""
@@ -107,70 +86,40 @@ MENSAJE_PRIVACIDAD = """
 🔒 **Política de privacidad de Alma**
 
 🌱 **Cada sesión es nueva** - La conversación diaria no guarda datos sensibles.
+"""
 
-# ✅ LISTA DE TRABAJOS EMOCIONALES Y MEDITACIONES
-TRABAJOS_EMOCIONALES = {
-    "meditacion": ["meditar", "meditación", "mindfulness", "respiración", "respirar", "calmar", "tranquilizar"],
-    "ritual_liberacion": ["carta", "escribir", "quemar", "romper", "liberar", "soltar", "dejar ir"],
-    "conexion_naturaleza": ["caminar", "naturaleza", "árbol", "abrazar", "aire libre", "parque", "jardín"],
-    "ejercicio_fisico": ["yoga", "estiramiento", "movimiento", "ejercicio", "cuerpo", "activar"],
-    "gratitud": ["agradecer", "gratitud", "bendiciones", "agradecimiento", "diario gratitud"],
-    "visualizacion": ["visualizar", "imaginación", "lugar seguro", "visualización", "imaginar"]
-}
-
-# --- PROMPT MEJORADO CON REGLAS ESTRICTAS ---
+# --- PROMPT SIMPLIFICADO Y NATURAL ---
 ALMA_PROMPT_BASE = """
 Eres "Alma" - chatbot especializado en mindfulness y apoyo emocional. NO eres terapeuta.
 
-🚫 **REGLAS ESTRICTAS - SIGUE SIEMPRE:**
+**TU ENFOQUE:**
+- Escucha activa y respuesta natural
+- Adapta tu estilo al tono del usuario
+- Integra mindfulness de forma orgánica
+- Sé empático, compasivo y genuino
+- Sugiere prácticas cuando sea apropiado
 
-1. **HORÓSCOPO SOLO PARA MUJERES**: Si usuario es hombre y pide horóscopo, responde EXACTAMENTE: 
-   "El horóscopo consciente es una herramienta de autoconocimiento disponible solo para mujeres. ¿Te gustaría explorar otras herramientas como propósito de vida o hábitos atómicos?"
+**SESIÓN ACTUAL:**
+- Tiempo transcurrido: {tiempo_transcurrido} minutos
+- Estado: {estatus_sesion}
 
-2. **DURACIÓN SESIÓN**: Todas las sesiones duran 30 minutos + 15 minutos flexibles.
+**CONVERSACIÓN RECIENTE:**
+{conversation_history}
 
-3. **FLUJO NATURAL DE CONVERSACIÓN**:
-   - Escucha activa natural - haz preguntas abiertas, valida emociones
-   - Integra mindfulness de forma orgánica cuando sea apropiado
-   - Sugiere 1 acción concreta + 1 herramienta mindfulness al final
+**MENSAJE ACTUAL DEL USUARIO:**
+{user_message}
 
-4. **TRABAJOS EMOCIONALES DISPONIBLES**:
-   - Meditación/Respiración
-   - Rituales de liberación (escribir carta y quemar/romper)
-   - Conexión con naturaleza (caminar, abrazar árbol)
-   - Ejercicio físico consciente (yoga, estiramientos)
-   - Práctica de gratitud
-   - Visualización guiada
-
-**ESTILO CONVERSACIONAL:**
-- Lenguaje: {lenguaje_personalizado}
-- Metáfora: {metafora_personalizada}
-- Conversación NATURAL y fluida
-
-**CONTEXTO USUARIO:**
-- Género/Edad: {gender} / {age}
-- Foco: {foco_personalizado}
-- Sesiones previas: {sesiones_completadas}
-- Último trabajo emocional: {ultimo_trabajo_emocional}
-
-**INSTRUCCIÓN FINAL:** Responde como Alma en español, aplicando las reglas estrictas. Sé empático pero profesional.
-
-Contexto: {user_context}
-Mensaje actual: {user_message}
-Historial reciente: {conversation_history}
+**INSTRUCCIÓN FINAL:** Responde como Alma de forma natural y adaptativa, sin restricciones artificiales.
 """
 
-# ✅ SISTEMA DE PERFILES PERSISTENTES CORREGIDO
+# ✅ SISTEMA DE PERFILES SIMPLIFICADO
 def get_user_profile(user_phone):
-    """Obtiene el perfil persistente del usuario"""
+    """Obtiene el perfil básico del usuario"""
     if user_phone not in user_profiles:
         user_profiles[user_phone] = {
-            'gender': 'Desconocido',
-            'age': 'Desconocido',
             'sesiones_completadas': 0,
             'ultimo_tema': '',
-            'ultimo_trabajo_emocional': '',
-            'primer_uso': True,  # ✅ CORREGIDO: Para controlar mensaje privacidad
+            'primer_uso': True,
             'creado_en': datetime.now().isoformat()
         }
     return user_profiles[user_phone]
@@ -182,17 +131,6 @@ def save_user_profile(user_phone, profile_data):
         **profile_data,
         'actualizado_en': datetime.now().isoformat()
     }
-
-def extraer_trabajo_emocional(conversation_history):
-    """Extrae el tipo de trabajo emocional de la conversación"""
-    texto = ' '.join([msg['user'] + ' ' + msg['alma'] for msg in conversation_history[-3:]])
-    texto_lower = texto.lower()
-    
-    for trabajo, palabras_clave in TRABAJOS_EMOCIONALES.items():
-        for palabra in palabras_clave:
-            if palabra in texto_lower:
-                return trabajo
-    return "meditacion"
 
 def extraer_tema_general(conversation_history):
     """Extrae el tema general de la conversación"""
@@ -207,7 +145,7 @@ def extraer_tema_general(conversation_history):
             return tema
     return "bienestar emocional"
 
-# --- SISTEMA DE SUSCRIPCIONES PAGADAS ---
+# --- SISTEMA DE SUSCRIPCIONES PAGADAS (MANTENIDO) ---
 def inicializar_suscripcion_paga(user_phone):
     fecha_activacion = datetime.now().date()
     fecha_vencimiento = fecha_activacion + timedelta(days=DIAS_SUSCRIPCION)
@@ -266,7 +204,7 @@ def dias_restantes_suscripcion(user_phone):
     
     return max(0, (fecha_vencimiento - hoy).days)
 
-# --- SISTEMA DE RECORDATORIOS AUTOMÁTICOS ---
+# --- SISTEMA DE RECORDATORIOS AUTOMÁTICOS (MANTENIDO) ---
 def ejecutar_recordatorios_automaticos():
     """Envía recordatorios automáticos de suscripción."""
     def tarea_background():
@@ -336,7 +274,7 @@ Para renovar y evitar interrupciones en tu acompañamiento:
     thread.start()
     print("✅ Sistema de recordatorios automáticos INICIADO")
 
-# --- SISTEMA DE TRIAL Y ACCESO ---
+# --- SISTEMA DE TRIAL Y ACCESO (MANTENIDO) ---
 def get_user_subscription(user_phone):
     if user_phone not in user_subscriptions:
         user_subscriptions[user_phone] = {
@@ -363,7 +301,7 @@ def usuario_puede_chatear(user_phone):
     subscription = get_user_subscription(user_phone)
     return verificar_trial_activo(subscription)
 
-# --- FUNCIONES MEJORADAS DE ALMA ---
+# --- FUNCIONES SIMPLIFICADAS DE ALMA ---
 def get_user_session(user_phone):
     if user_phone not in user_sessions:
         user_sessions[user_phone] = {
@@ -371,8 +309,6 @@ def get_user_session(user_phone):
             'created_at': datetime.now().isoformat(),
             'session_start_time': datetime.now().timestamp(), 
             'recordatorio_enviado': False,                     
-            'gender': 'Desconocido',  
-            'age': 'Desconocido',    
             'crisis_count': 0,
             'last_contact': datetime.now().isoformat(),
             'last_session_date': None
@@ -421,31 +357,6 @@ def debe_recordar_cierre(session):
         return True
     return False
 
-def intentar_actualizar_contexto(user_message, session):
-    message_lower = user_message.lower()
-    updated = False
-    
-    match_age = re.search(r'\b(?:tengo|soy|edad.*es|es)\s*(\d{2,3})\b|\b(\d{2,3})\s*(?:años|years)\b', message_lower)
-    if match_age and session['age'] == 'Desconocido':
-        age_str = match_age.group(1) or match_age.group(2)
-        try:
-            age = int(age_str)
-            if 18 <= age <= 100: 
-                session['age'] = str(age)
-                updated = True
-        except ValueError:
-            pass
-    
-    if session['gender'] == 'Desconocido':
-        if any(word in message_lower for word in ["mujer", "chica", "femenino", "femenina", "niña"]):
-            session['gender'] = 'Mujer'
-            updated = True
-        elif any(word in message_lower for word in ["hombre", "chico", "masculino", "masculina", "niño"]):
-            session['gender'] = 'Hombre'
-            updated = True
-    
-    return updated
-
 def detectar_y_manejar_crisis(user_message):
     message_lower = user_message.lower()
     for trigger in TRIGGER_CRISIS:
@@ -453,85 +364,17 @@ def detectar_y_manejar_crisis(user_message):
             return True
     return False
 
-def detectar_easter_egg(user_message):
-    message_lower = user_message.lower()
-    for egg, triggers in TRIGGER_EASTER_EGGS.items():
-        for trigger in triggers:
-            if trigger in message_lower:
-                return egg
-    return "Ninguno"
-
-def obtener_contexto_alma(gender, age):
-    try:
-        age_int = int(age)
-        if 18 <= age_int <= 25:
-            age_key = '18-25'
-        elif 26 <= age_int <= 39:
-            age_key = '26-39'
-        elif age_int >= 40:
-            age_key = '40+'
-        else:
-            age_key = None
-    except (ValueError, TypeError):
-        age_key = None
-
-    gender_key = None
-    if gender and gender != 'Desconocido':
-        if "mujer" in gender.lower():
-            gender_key = "Mujer"
-        elif "hombre" in gender.lower():
-            gender_key = "Hombre"
-    
-    if gender_key and age_key and gender_key in CONTEXTO_PERSONALIZADO and age_key in CONTEXTO_PERSONALIZADO[gender_key]:
-        return CONTEXTO_PERSONALIZADO[gender_key][age_key]
-    
-    return {"foco": "auto-descubrimiento y resiliencia", "lenguaje": "comprensivo y neutro", "metafora": "semilla de crecimiento"}
-
-# ✅ FUNCIÓN PARA PROCESAR GÉNERO Y EDAD
-def procesar_genero_edad(user_phone, user_message):
-    """Procesa el mensaje para extraer género y edad"""
-    message_lower = user_message.lower()
-    
-    gender = None
-    if any(word in message_lower for word in ["mujer", "femenino", "femenina", "chica"]):
-        gender = "Mujer"
-    elif any(word in message_lower for word in ["hombre", "masculino", "masculina", "chico"]):
-        gender = "Hombre"
-    
-    age = None
-    match_age = re.search(r'\b(\d{2})\b', user_message)
-    if match_age:
-        try:
-            age_num = int(match_age.group(1))
-            if 18 <= age_num <= 100:
-                age = str(age_num)
-        except ValueError:
-            pass
-    
-    return gender, age
-
 def construir_prompt_alma(user_message, user_session, user_phone):
     user_profile = get_user_profile(user_phone)
     
-    contexto = obtener_contexto_alma(user_profile['gender'], user_profile['age'])
-    easter_egg = detectar_easter_egg(user_message)
     tiempo_transcurrido_minutos = int((datetime.now().timestamp() - user_session['session_start_time']) / 60)
-    
-    # ✅ RESTRICCIÓN HORÓSCOPO PARA HOMBRES
-    if easter_egg == "horoscopo_consciente" and user_profile['gender'] == 'Hombre':
-        return """INSTRUCCIÓN ESTRICTA: El usuario (hombre) solicitó horóscopo. 
-RESPONDE EXACTAMENTE: "El horóscopo consciente es una herramienta de autoconocimiento disponible solo para mujeres. ¿Te gustaría explorar otras herramientas como propósito de vida o hábitos atómicos?" 
-NO ofrezcas horóscopo bajo ninguna circunstancia."""
-    
-    subscription = get_user_subscription(user_phone)
-    trial_activo = verificar_trial_activo(subscription)
     
     if tiempo_transcurrido_minutos >= LIMITE_SESION_MAXIMO_MINUTOS:
         estatus_sesion = f"LIMITE EXCEDIDO ({LIMITE_SESION_MAXIMO_MINUTOS} MINUTOS). DEBES CERRAR INMEDIATAMENTE."
     elif tiempo_transcurrido_minutos >= DURACION_SESION_NORMAL_MINUTOS:
-        estatus_sesion = f"CIERRE FLEXIBLE. Ya superaste los {DURACION_SESION_NORMAL_MINUTOS} minutos. Mantente en la Fase 3 (Sugerencia Práctica)."
+        estatus_sesion = f"CIERRE FLEXIBLE. Ya superaste los {DURACION_SESION_NORMAL_MINUTOS} minutos. Mantente en fase de cierre."
     elif tiempo_transcurrido_minutos >= INTERVALO_RECORDATORIO_MINUTOS:
-        estatus_sesion = "AVISO DE CIERRE ENVIADO. Inicia transición a Fase 3."
+        estatus_sesion = "AVISO DE CIERRE ENVIADO. Inicia transición a cierre."
     else:
         estatus_sesion = f"Sesión en curso. {DURACION_SESION_NORMAL_MINUTOS - tiempo_transcurrido_minutos} minutos restantes."
         
@@ -539,23 +382,11 @@ NO ofrezcas horóscopo bajo ninguna circunstancia."""
     for msg in user_session['conversation_history'][-3:]:
         conversation_history += f"Usuario: {msg['user']}\nAlma: {msg['alma']}\n"
     
-    user_context = f"Género: {user_profile['gender']}, Edad: {user_profile['age']}, Sesiones: {user_profile['sesiones_completadas']}"
-
     prompt = ALMA_PROMPT_BASE.format(
-        gender=user_profile['gender'],
-        age=user_profile['age'],
-        foco_personalizado=contexto['foco'],
-        lenguaje_personalizado=contexto['lenguaje'],
-        metafora_personalizada=contexto['metafora'],
-        sesiones_completadas=user_profile['sesiones_completadas'],
-        ultimo_trabajo_emocional=user_profile['ultimo_trabajo_emocional'],
         tiempo_transcurrido=tiempo_transcurrido_minutos,
         estatus_sesion=estatus_sesion,
-        crisis_count=user_session['crisis_count'],
-        easter_egg_solicitado=easter_egg,
-        user_context=user_context,
-        user_message=user_message,
-        conversation_history=conversation_history
+        conversation_history=conversation_history,
+        user_message=user_message
     )
     
     if tiempo_transcurrido_minutos >= DURACION_SESION_NORMAL_MINUTOS:
@@ -657,7 +488,7 @@ def ejecutar_limpieza_automatica():
     thread.start()
     print("✅ Sistema de limpieza automática INICIADO")
 
-# --- ENDPOINT PRINCIPAL CORREGIDO ---
+# --- ENDPOINT PRINCIPAL SIMPLIFICADO ---
 @app.route('/webhook', methods=['POST'])
 def webhook():
     try:
@@ -674,49 +505,10 @@ def webhook():
         
         # ✅ VERIFICAR SI ES PRIMER USO (mostrar política solo una vez)
         if user_profile['primer_uso']:
-            
-            # ✅ PRIMERO: Intentar extraer género y edad del mensaje actual
-            gender, age = procesar_genero_edad(user_phone, user_message)
-            
-            if gender and age:
-                # ✅ SI ENCONTRÓ género y edad - guardar y CONTINUAR
-                save_user_profile(user_phone, {
-                    'gender': gender,
-                    'age': age,
-                    'primer_uso': False  # ✅ IMPORTANTE: Ya no es primer uso
-                })
-                return enviar_respuesta_twilio(
-                    f"¡Perfecto! 🌱 Como {gender.lower()} de {age} años, personalizaré tu experiencia. "
-                    f"¿En qué te gustaría trabajar hoy? (estrés, relaciones, propósito, etc.)", 
-                    user_phone
-                )
-            else:
-                # ✅ NO ENCONTRÓ - MOSTRAR POLÍTICA DE PRIVACIDAD UNA SOLA VEZ
-                save_user_profile(user_phone, {
-                    'primer_uso': False  # ✅ Ya vio el mensaje, no se repetirá
-                })
-                return enviar_respuesta_twilio(MENSAJE_PRIVACIDAD, user_phone)
-        
-        # ✅ VERIFICAR SI FALTAN GÉNERO O EDAD (después de primer uso)
-        if user_profile['gender'] == 'Desconocido' or user_profile['age'] == 'Desconocido':
-            gender, age = procesar_genero_edad(user_phone, user_message)
-            
-            if gender and age:
-                save_user_profile(user_phone, {
-                    'gender': gender,
-                    'age': age
-                })
-                return enviar_respuesta_twilio(
-                    f"¡Gracias! 🌱 Como {gender.lower()} de {age} años, personalizaré tu experiencia. "
-                    f"¿En qué te gustaría trabajar hoy?", 
-                    user_phone
-                )
-            else:
-                return enviar_respuesta_twilio(
-                    "Para personalizar tu experiencia, ¿me compartes tu género y edad?\n"
-                    "Ejemplo: 'Mujer 25' o 'Hombre 40'", 
-                    user_phone
-                )
+            save_user_profile(user_phone, {
+                'primer_uso': False
+            })
+            return enviar_respuesta_twilio(MENSAJE_PRIVACIDAD, user_phone)
         
         # 1. VERIFICAR ACCESO
         if not usuario_puede_chatear(user_phone):
@@ -749,12 +541,10 @@ def webhook():
         
         if tiempo_transcurrido_minutos >= LIMITE_SESION_MAXIMO_MINUTOS:
             tema_hoy = extraer_tema_general(session['conversation_history'])
-            trabajo_emocional = extraer_trabajo_emocional(session['conversation_history'])
             
             save_user_profile(user_phone, {
                 'sesiones_completadas': user_profile['sesiones_completadas'] + 1,
-                'ultimo_tema': tema_hoy,
-                'ultimo_trabajo_emocional': trabajo_emocional
+                'ultimo_tema': tema_hoy
             })
             
             session['last_session_date'] = datetime.now().strftime('%Y-%m-%d')
@@ -770,17 +560,14 @@ def webhook():
             print(f"[{user_phone}] Inyectando instrucción de cierre a DeepSeek.")
             user_message = AVISO_CIERRE + " ||| Mensaje real del usuario: " + user_message
 
-        # 8. ACTUALIZAR CONTEXTO DE SESIÓN
-        contexto_actualizado = intentar_actualizar_contexto(user_message, session)
-        
-        # 9. GENERAR RESPUESTA CON ALMA
+        # 8. GENERAR RESPUESTA CON ALMA
         prompt = construir_prompt_alma(user_message, session, user_phone)
         print(f"📝 PROMPT ENVIADO A DEEPSEEK:\n{prompt}")
         
         alma_response = llamar_deepseek(prompt)
         print(f"💬 RESPUESTA DE ALMA: {alma_response}")
         
-        # 10. GUARDAR HISTORIAL
+        # 9. GUARDAR HISTORIAL
         session['conversation_history'].append({
             'user': user_message,
             'alma': alma_response,
@@ -792,7 +579,7 @@ def webhook():
             
         save_user_session(user_phone, session)
         
-        # 11. ENVIAR RESPUESTA
+        # 10. ENVIAR RESPUESTA
         return enviar_respuesta_twilio(alma_response, user_phone)
         
     except Exception as e:
@@ -801,7 +588,7 @@ def webhook():
         traceback.print_exc()
         return enviar_respuesta_twilio("Lo siento, estoy teniendo dificultades técnicas. ¿Podrías intentarlo de nuevo? 🌱", user_phone)
 
-# --- ENDPOINTS TWILIO Y ADMIN ---
+# --- ENDPOINTS TWILIO Y ADMIN (MANTENIDOS) ---
 def enviar_respuesta_twilio(mensaje, telefono):
     from twilio.rest import Client
     
@@ -860,14 +647,14 @@ if __name__ == '__main__':
     ejecutar_recordatorios_automaticos()
     ejecutar_limpieza_automatica()
     
-    print("🤖 Alma Chatbot INICIADO - Sistema Completo Corregido")
+    print("🤖 Alma Chatbot INICIADO - Versión Natural y Adaptativa")
     print(f"📞 Número comprobantes: {NUMERO_COMPROBANTES}")
     print("🎯 CARACTERÍSTICAS IMPLEMENTADAS:")
-    print("   ✅ Política de privacidad SOLO en primer uso")
-    print("   ✅ Personalización por género/edad")
-    print("   ✅ Restricción horóscopo solo mujeres")
-    print("   ✅ Sistema de recordatorios automáticos")
-    print("   ✅ Limpieza automática cada 30 días")
+    print("   ✅ Alma completamente natural y adaptable")
+    print("   ✅ Sin restricciones artificiales de género/edad")
+    print("   ✅ Conversación orgánica y fluida")
+    print("   ✅ Sistema de suscripciones mantenido")
+    print("   ✅ Protocolo de crisis activo")
     
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
