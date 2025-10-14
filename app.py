@@ -148,7 +148,7 @@ Eres "Alma" - chatbot especializado en mindfulness y apoyo emocional. NO eres te
 
 **INSTRUCCIÓN FINAL:** 
 - Si el mensaje es SOBRE SUSCRIPCIÓN/PAGO/RENOVACIÓN: envía mensaje comercial
-- Para TODO LO DEMÁS: responde como Alma de forma natural, pero estando consciente del tiempo limite.
+- Para TODO LO DEMÁS: responde como Alma de forma natural, pero estando consciente del tiempo límite.
 """
 
 # --- SISTEMA PERSISTENTE UNIFICADO ---
@@ -482,8 +482,6 @@ def debe_recordar_cierre(session):
     return False
 
 # --- DETECCIÓN DE CRISIS PRECISA Y CONSERVADORA ---
-
-# --- DETECCIÓN DE CRISIS ACTUALIZADA ---
 def detectar_crisis_real(user_message):
     """
     Detección MUY conservadora - solo activa con suicidio explícito
