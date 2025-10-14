@@ -39,8 +39,37 @@ DEBES comenzar inmediatamente la fase de cierre con una sugerencia práctica de 
 Finaliza la sesión con el mensaje de cierre y guarda el contexto. NO uses más de 15 minutos adicionales.
 """
 
-# --- PROMPT SIMPLIFICADO DE ALMA ---
-TRIGGER_CRISIS = ["suicidarme", "suicidio", "pensamiento suicida", "autolesiones", "no puedo seguir ", "no puedo más","matarme", "quiero morir", "quisiera morir", "quisiera morirme", "acabar con mi vida","quitarme la vida"]
+# --- PROTOCOLO DE CRISIS PRECISO Y CONSERVADOR ---
+TRIGGER_CRISIS = [
+    # EXPLÍCITOS E INEQUÍVOCOS
+    "quiero suicidarme",
+    "me voy a suicidar", 
+    "voy a suicidarme",
+    "pensando en suicidarme",
+    "estoy pensando en suicidarme",
+    "planeo suicidarme",
+    "me quiero suicidar",
+    
+    # ACCIONES SUICIDAS ESPECÍFICAS
+    "quiero matarme",
+    "me voy a matar",
+    "voy a matarme",
+    "quiero quitarme la vida",
+    "voy a quitarme la vida",
+    "me voy a quitar la vida",
+    "acabar con mi vida",
+    
+    # DESPEDIDAS SUICIDAS
+    "esta es la despedida",
+    "adiós para siempre",
+    "nunca más me verán",
+    
+    # MÉTODOS ESPECÍFICOS
+    "tomarme todas las pastillas",
+    "saltar de un edificio",
+    "ahorcarme",
+    "dispararme"
+]
 
 # --- MENSAJES COMERCIALES ---
 MENSAJE_SUSCRIPCION = f"""
@@ -357,11 +386,39 @@ def debe_recordar_cierre(session):
         return True
     return False
 
-def detectar_y_manejar_crisis(user_message):
-    message_lower = user_message.lower()
-    for trigger in TRIGGER_CRISIS:
-        if trigger in message_lower:
+# --- DETECCIÓN DE CRISIS PRECISA Y CONSERVADORA ---
+def detectar_crisis_real(user_message):
+    """
+    Detección MUY conservadora - solo activa con suicidio explícito
+    No activa con expresiones de desahogo emocional normales
+    """
+    mensaje = user_message.lower().strip()
+    
+    # Patrones que requieren contexto suicida explícito
+    patrones_suicidio_explicito = [
+        r"quiero suicidarme",
+        r"me voy a suicidar", 
+        r"voy a suicidarme",
+        r"suicidarme\b",
+        r"matarme\b",
+        r"quitarme la vida",
+        r"acabar con mi vida",
+        r"pensando en suicidarme",
+        r"planeo suicidarme"
+    ]
+    
+    for patron in patrones_suicidio_explicito:
+        if re.search(patron, mensaje):
+            print(f"🚨 CRISIS DETECTADA: '{patron}' en mensaje: {mensaje}")
             return True
+    
+    # Verificación adicional con lista de triggers
+    for trigger in TRIGGER_CRISIS:
+        if trigger in mensaje:
+            print(f"🚨 CRISIS DETECTADA: '{trigger}' en mensaje: {mensaje}")
+            return True
+    
+    print(f"✅ No se detectó crisis - Mensaje normal: {mensaje[:50]}...")
     return False
 
 def construir_prompt_alma(user_message, user_session, user_phone):
@@ -530,8 +587,8 @@ def webhook():
             alma_response = f"¡Hola! Tu sesión de Alma de hoy ya ha concluido. Podrás iniciar tu próxima sesión mañana (en {horas} horas y {minutos} minutos). ¡Estaré aquí para ti! 🌱"
             return enviar_respuesta_twilio(alma_response, user_phone)
         
-        # 5. PROTOCOLO DE CRISIS
-        if detectar_y_manejar_crisis(user_message):
+        # 5. PROTOCOLO DE CRISIS PRECISO
+        if detectar_crisis_real(user_message):
             session['crisis_count'] += 1
             save_user_session(user_phone, session)
             return enviar_respuesta_crisis(user_phone)
@@ -651,10 +708,10 @@ if __name__ == '__main__':
     print(f"📞 Número comprobantes: {NUMERO_COMPROBANTES}")
     print("🎯 CARACTERÍSTICAS IMPLEMENTADAS:")
     print("   ✅ Alma completamente natural y adaptable")
-    print("   ✅ Sin restricciones artificiales de género/edad")
-    print("   ✅ Conversación orgánica y fluida")
+    print("   ✅ Protocolo de crisis PRECISO y conservador")
+    print("   ✅ No activa con expresiones normales de desahogo")
     print("   ✅ Sistema de suscripciones mantenido")
-    print("   ✅ Protocolo de crisis activo")
+    print("   ✅ Conversación orgánica y fluida")
     
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
