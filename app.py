@@ -641,7 +641,7 @@ def manejar_comando_suscripcion(user_phone, user_message):
     if any(palabra in message_lower for palabra in palabras_comprobante):
         # ✅ VERIFICAR CONTEXTO - Solo activar si hay palabras relacionadas con PAGO
         contexto_pago = any(contexto in message_lower for contexto in [
-            "pago", "pagué", "transferí", "transferencia", "deposito", "deposité", "suscribí", "mensualidad", "Alma"
+            "pago", "pagué", "transferí", "transferencia", "deposito", "deposité", "suscribí", "mensualidad"
         ])
         
         # ❌ EVITAR CONTEXTOS NEGATIVOS/NEUTRALES
