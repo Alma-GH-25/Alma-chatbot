@@ -118,6 +118,7 @@ MENSAJE_PRIVACIDAD = """
 
 • Alma no juzga ni guarda datos sensibles  
 • Tus conversaciones son confidenciales
+• Alma no reemplaza terapia profesional
 • Sesiones de 60 minutos por día
 
 *Tu bienestar emocional es nuestra prioridad* 🌱
@@ -614,7 +615,8 @@ te recomiendo contactar **inmediatamente**:
 🚑 **Urgencias:** 911
 
 **No estás solo. Por favor busca ayuda profesional inmediata.**
-Estaré aquí cuando te sientas más estable 🌱
+Recuerda que hay personas que se preocupan por ti.
+Te espero en este tu espacio cuando te sientas mejor o quieras seguir hablando.🌱
 """
     return enviar_respuesta_twilio(MENSAJE_CRISIS, telefono)
 
