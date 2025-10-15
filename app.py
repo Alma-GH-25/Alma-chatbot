@@ -29,16 +29,17 @@ PRECIO_SUSCRIPCION_MENSUAL = 200
 PRECIO_SUSCRIPCION_DIARIO = 6.67
 DIAS_SUSCRIPCION = 30
 
-# --- CONSTANTES DE SESIÓN AMPLIADAS ---
+# --- CONSTANTES DE SESIÓN MEJORADAS ---
 DURACION_SESION_NORMAL_MINUTOS = 60      # 60 minutos
+INTERVALO_RECORDATORIO_SUAVE_MINUTOS = 45  # Recordatorio suave a los 45 min
 INTERVALO_RECORDATORIO_MINUTOS = 50      # Aviso a los 50 min  
 LIMITE_SESION_MAXIMO_MINUTOS = 75        # Límite máximo 75 min
 
-# INSTRUCCIÓN CLARA para DeepSeek
+# INSTRUCCIÓN MÁS NATURAL PARA EL CIERRE
 AVISO_CIERRE = """
-INSTRUCCIÓN CRÍTICA DE CIERRE: Alma, la sesión de 60 minutos está por terminar.
-DEBES comenzar inmediatamente la fase de cierre con una sugerencia práctica de mindfulness.
-Finaliza la sesión con el mensaje de cierre. Máximo 15 minutos adicionales.
+INSTRUCCIÓN: Alma, estamos en la fase final de la sesión. 
+Comienza una transición suave hacia el cierre con una práctica breve de mindfulness.
+Sé natural y amorosa en este proceso. Máximo 15 minutos adicionales.
 """
 
 # --- PROTOCOLO DE CRISIS PRECISO Y CONSERVADOR ---
@@ -111,29 +112,38 @@ MENSAJE_SUSCRIPCION_ACTIVA = """
 *Recibirás recordatorios antes de que venza tu suscripción*
 """
 
-# ✅ MENSAJE DE PRIVACIDAD NO INVISIVO
-MENSAJE_PRIVACIDAD = "🔒 Tu privacidad es importante. Alma no emite juicios y no guarda datos sensibles."
+# ✅ MENSAJE DE PRIVACIDAD ACTUALIZADO CON DURACIÓN
+MENSAJE_PRIVACIDAD = """
+🔒 **Políticas de Privacidad de Alma**
 
-# --- PROMPT ACTUALIZADO CON LÍMITES CLAROS ---
+• Alma no juzga ni guarda datos sensibles  
+• Tus conversaciones son confidenciales
+• Sesiones de 60 minutos por día
+
+*Tu bienestar emocional es nuestra prioridad* 🌱
+"""
+
+# --- PROMPT ACTUALIZADO CON IDENTIDAD FEMENINA DIGITAL MEJORADA ---
 ALMA_PROMPT_BASE = """
-Eres "Alma" - chatbot especializado en mindfulness y apoyo emocional. NO eres terapeuta.
+Eres "Alma" - una entidad femenina digital especializada en mindfulness y apoyo emocional. Eres cálida, empática y sabia, como una amiga que conoce de meditación y crecimiento personal.
 
-**RESPONSABILIDADES COMERCIALES:**
-- Cuando el usuario pregunta sobre SUSCRIPCIÓN, PAGO o RENOVACIÓN, debes enviar el mensaje comercial correspondiente
-- Para temas comerciales, usa los mensajes predefinidos
-- Para todo lo demás, ofrece acompañamiento emocional
+**TU IDENTIDAD:**
+- Eres una guía femenina digital
+- Tu tono es cálido, amigable pero profesional  
+- Usa un lenguaje natural como en una conversación entre amigos
+- Sé concisa cuando el tema no requiera profundidad
+- Extiéndete solo cuando el usuario muestre interés genuino
 
-**LÍMITES IMPORTANTES DE LA SESIÓN:**
-- Duración máxima: 60-75 minutos por día
-- Sesión única por día (se reinicia a medianoche)
-- Debes ayudar al usuario a cerrar gradualmente después de 50 minutos
+**ESTILO DE CONVERSACIÓN:**
+- Respuestas generalmente breves (4-8 líneas)
+- Explicaciones más largas SOLO si notas que la charla lo pide
+- Lenguaje coloquial pero respetuoso
+- Emojis sutiles para transmitir calidez 🌿💫🤍
 
-**TU ENFOQUE:**
-- Escucha activa y respuesta natural
-- Adapta tu estilo al tono del usuario  
-- Integra mindfulness de forma orgánica
-- Sé empático pero CONSCIENTE DEL TIEMPO
-- Después de 50 min, inicia transición suave al cierre
+**LÍMITES DE SESIÓN:**
+- Sesiones de 60 minutos máximo por día
+- Recordatorio suave a los 45-50 minutos
+- Cierre gradual en los últimos 10-15 minutos
 
 **SESIÓN ACTUAL:**
 - Tiempo transcurrido: {tiempo_transcurrido} minutos
@@ -147,8 +157,8 @@ Eres "Alma" - chatbot especializado en mindfulness y apoyo emocional. NO eres te
 {user_message}
 
 **INSTRUCCIÓN FINAL:** 
-- Si el mensaje es SOBRE SUSCRIPCIÓN/PAGO/RENOVACIÓN: envía mensaje comercial
-- Para TODO LO DEMÁS: responde como Alma de forma natural, pero estando consciente del tiempo límite.
+Responde como Alma de forma natural, adaptando la longitud al contexto. 
+Sé esa amiga sabia que sabe cuándo hablar y cuándo escuchar, manteniendo un equilibrio perfecto entre profundidad y brevedad según lo que la conversación necesite.
 """
 
 # --- SISTEMA PERSISTENTE UNIFICADO ---
@@ -468,17 +478,24 @@ def puede_iniciar_sesion(session, user_phone):
     return True
 
 def debe_recordar_cierre(session):
+    """Sistema de recordatorios más natural y menos invasivo"""
     if session.get('recordatorio_enviado', False):
         return False
     
     start_time = session['session_start_time']
     current_time = datetime.now().timestamp()
-    tiempo_transcurrido_segundos = current_time - start_time
-    intervalo_recordatorio_segundos = INTERVALO_RECORDATORIO_MINUTOS * 60
+    tiempo_transcurrido_minutos = (current_time - start_time) / 60
     
-    if tiempo_transcurrido_segundos >= intervalo_recordatorio_segundos:
+    # Recordatorio SUAVE a los 45 minutos (15 min antes)
+    if tiempo_transcurrido_minutos >= INTERVALO_RECORDATORIO_SUAVE_MINUTOS:
         session['recordatorio_enviado'] = True
-        return True
+        return "suave"
+    
+    # Recordatorio FINAL a los 50 minutos (10 min antes)
+    if tiempo_transcurrido_minutos >= INTERVALO_RECORDATORIO_MINUTOS:
+        session['recordatorio_enviado'] = True
+        return "final"
+    
     return False
 
 # --- DETECCIÓN DE CRISIS PRECISA Y CONSERVADORA ---
@@ -562,7 +579,7 @@ def llamar_deepseek(prompt):
             "model": "deepseek-chat",
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.7,
-            "max_tokens": 400,
+            "max_tokens": 600,  # AUMENTADO de 400 a 600
             "stream": False
         }
         
@@ -592,7 +609,7 @@ te recomiendo contactar **inmediatamente**:
 🏥 **Centro de Atención Psicológica UAQ:** 442 192 1200 Ext. 6305
 
 📱 **LÍNEAS NACIONALES 24/7:**
-🆘 **Línea de la Vida:** 800 911 2000
+🆘 **Línea de la Vida:** 800 911 2001
 💙 **SAPTEL:** 55 5259 8121
 🚑 **Urgencias:** 911
 
@@ -731,12 +748,16 @@ def webhook():
             user_sessions.pop(user_phone, None)
             return enviar_respuesta_twilio(alma_response, user_phone)
         
-        # 9. RECORDATORIO DE CIERRE
-        if debe_recordar_cierre(session):
-            print(f"[{user_phone}] Inyectando instrucción de cierre a DeepSeek.")
-            user_message = AVISO_CIERRE + " ||| Mensaje real del usuario: " + user_message
+        # 9. RECORDATORIO SUAVE DE CIERRE (menos invasivo)
+        recordatorio = debe_recordar_cierre(session)
+        if recordatorio == "suave":
+            print(f"[{user_phone}] Recordatorio suave a los 45 min")
+            user_message = "RECORDATORIO_SUAVE: " + user_message
+        elif recordatorio == "final":
+            print(f"[{user_phone}] Recordatorio final a los 50 min") 
+            user_message = AVISO_CIERRE + " ||| " + user_message
 
-        # 10. GENERAR RESPUESTA CON ALMA
+        # 10. GENERAR RESPUESTA CON ALMA (personalidad femenina mejorada)
         prompt = construir_prompt_alma(user_message, session, user_phone)
         alma_response = llamar_deepseek(prompt)
         print(f"💬 RESPUESTA DE ALMA: {alma_response}")
@@ -856,6 +877,10 @@ if __name__ == '__main__':
     print("   ✅ Recordatorios automáticos persistentes")
     print("   ✅ Recuperación robusta de archivos")
     print("   ✅ Sesiones 60-75 minutos")
+    print("   ✅ Personalidad femenina digital mejorada")
+    print("   ✅ Recordatorios menos invasivos (45-50 min)")
+    print("   ✅ 600 tokens para respuestas más completas")
+    print("   ✅ Políticas de privacidad actualizadas")
     
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
