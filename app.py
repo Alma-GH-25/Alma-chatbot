@@ -623,11 +623,90 @@ Te espero en este tu espacio cuando te sientas mejor o quieras seguir hablando.�
 def manejar_comando_suscripcion(user_phone, user_message):
     message_lower = user_message.lower().strip()
     
-    # 🚨 VERSIÓN ULTRA-CONSERVADORA - SOLO RESPUESTA A PETICIONES EXPLÍCITAS
+    # 🆕 Manejar preguntas sobre si es gratis
+    preguntas_gratis = [
+        "Servicio es gratis",
+        "Servicio es gratuito", 
+        "Servicio tiene costo",
+        "Servicio no tiene costo",
+        "Servicio no cuesta nada",
+        "Servicio es sin pago",
+        "Servicio es de pago",
+        "Servicio tiene precio",        
+        "Alma es gratis",
+        "Alma es gratuita",
+        "Alma tiene costo",
+        "Alma no tiene costo",        
+        "Alma no cuesta nada",
+        "Alma es sin pago",
+        "Alma es de pago",
+        "Alma tiene precio",
+        "Chat es gratis",
+        "Chat es gratuito",
+        "Chat tiene costo",
+        "Chat no tiene costo",        
+        "Chat no cuesta nada",
+        "Chat es sin pago",
+        "Chat es de pago",
+        "Chat tiene precio",
+        "Chatbot es gratis",
+        "Chatbot es gratuito",
+        "Chatbot tiene costo",
+        "Chatbot no tiene costo",        
+        "Chatbot no cuesta nada",
+        "Chatbot es sin pago",
+        "Chatbot es de pago",
+        "Chatbot tiene precio",
+        "Chat bot es gratis",
+        "Chat bot es gratuito",
+        "Chat bot tiene costo",
+        "Chat bot no tiene costo",        
+        "Chat bot no cuesta nada",
+        "Chat bot es sin pago",
+        "Chat bot es de pago",
+        "Chat bot tiene precio",        
+    ]
+    
+    for pregunta in preguntas_gratis:
+        if pregunta in message_lower:
+            print(f"💰 Pregunta sobre gratuidad detectada: {pregunta} en '{user_message}'")
+            
+            # Verificar si el usuario está en trial
+            dias_restantes = dias_restantes_trial(user_phone)
+            
+            if dias_restantes > 0:
+                return f"""
+🌟 **Información sobre Alma - Prueba Gratuita** 🌟
+
+¡Sí! Actualmente estás disfrutando de tu **periodo de prueba GRATUITO de {DIAS_TRIAL_GRATIS} días**.
+
+📅 **Días restantes de tu prueba:** {dias_restantes} días
+
+Después de tu prueba, podrás continuar con una suscripción mensual de solo **${PRECIO_SUSCRIPCION_MENSUAL} MXN** (equivalente a ${PRECIO_SUSCRIPCION_DIARIO:.2f} por día).
+
+💫 *Menos que un café al día para tu bienestar emocional continuo*
+
+¿Te gustaría conocer los detalles de la suscripción? ¡Solo dime! 🌱
+"""
+            else:
+                return f"""
+💫 **Información sobre Alma - Suscripción**
+
+Alma ofrece una **prueba gratuita de {DIAS_TRIAL_GRATIS} días** para que experimentes los beneficios.
+
+Una vez finalizada la prueba, la suscripción es de solo **${PRECIO_SUSCRIPCION_MENSUAL} MXN al mes** (equivalente a ${PRECIO_SUSCRIPCION_DIARIO:.2f} por día).
+
+🌟 *Invierte en tu paz mental por menos del costo de un café diario*
+
+¿Te gustaría conocer los métodos de pago? ¡Estoy aquí para ayudarte! 🌱
+"""
+    
+    # 🚨 SOLO RESPUESTA A PETICIONES EXPLÍCITAS
     peticiones_explicitas = [        
         "cómo suscribirme",
         "cómo me suscribo",
         "cómo me doy de alta",
+        "que cuesta",
         "quiero suscribirme",
         "deseo suscribirme",
         "quiero registrarme",
@@ -672,6 +751,28 @@ def manejar_comando_suscripcion(user_phone, user_message):
         "formas de pago",
         "métodos de pago",
         "opciones de pago",
+        "información de pago",
+        "info de pago",
+        "información para pago",
+        "info para pago",
+        "información para pagar",
+        "info para pagar",     
+        "información de precio",
+        "info de precio",
+        "información de alta",
+        "info de alta",
+        "información de depósito",
+        "info de depósito",
+        "información para depositar",
+        "info para depositar",
+        "información de suscripción",
+        "info de suscripción",
+        "información para suscripción",
+        "info para suscripción",
+        "información para suscribirse",
+        "info para suscribirse",
+        "información para suscribirme",
+        "info para suscribirme",    
         "cómo renovar mi suscripción",
         "quiero renovar",
         "quiero actualizar mi plan"
