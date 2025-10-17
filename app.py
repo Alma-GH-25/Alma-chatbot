@@ -706,10 +706,11 @@ Para continuar disfrutando de Alma, la suscripción es de solo **${PRECIO_SUSCRI
 
     # 🚨 SOLO RESPUESTA A PETICIONES EXPLÍCITAS
     peticiones_explicitas = [        
-        "cómo suscribirme", "cómo me suscribo", "cómo me doy de alta",
-        "quiero suscribirme", "deseo suscribirme", "quiero registrarme",
-        "quiero darme de alta", "activar mi suscripción", "iniciar suscripción",
-        "empezar mi suscripción", "contratar el servicio", "cómo contratar",
+        "datos de suscripción", "datos para suscripción", "datos para suscribirse", 
+        "datos para suscribirme", "datos de pago", "datos para pago", "datos para pagar", 
+        "cómo suscribirme", "cómo me suscribo", "cómo me doy de alta", "quiero suscribirme",
+        "deseo suscribirme", "quiero registrarme", "quiero darme de alta", "activar mi suscripción", 
+        "iniciar suscripción", "empezar mi suscripción", "contratar el servicio", "cómo contratar",
         "cómo me uno", "cómo acceder al servicio", "cómo obtener acceso",
         "cómo pago", "quiero pagar", "deseo pagar", "realizar el pago",
         "hacer el pago", "pagar ahora", "cómo hacer el pago", "cómo abono",
