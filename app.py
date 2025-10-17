@@ -668,23 +668,23 @@ def manejar_comando_suscripcion(user_phone, user_message):
                 return f"""
 ✅ **Tu suscripción está activa**
 
-🎉 ¡Genial! Ya tienes acceso completo a Alma.
+🎉 ¡Genial!, ya tienes acceso completo a Alma.
 
 📅 **Días restantes de tu suscripción:** {dias_suscripcion} días
 
-💫 Disfruta de todos los beneficios de tu membresía premium.
+💫 Disfruta de todos los beneficios de tu membresía.
 
 ¿En qué puedo ayudarte hoy? 🌱
 """
             elif dias_restantes > 0:
                 return f"""
-🌟 **Información sobre Alma - Prueba Gratuita** 🌟
+🌟 **Información sobre Alma - Periodo de cortesía** 🌟
 
-¡Sí! Actualmente estás disfrutando de tu **periodo de prueba GRATUITO de {DIAS_TRIAL_GRATIS} días**.
+¡Sí!, actualmente estás disfrutando de tu periodo de cortesía de {DIAS_TRIAL_GRATIS} días**.
 
-📅 **Días restantes de tu prueba:** {dias_restantes} días
+📅 **Días restantes de tu experiencia:** {dias_restantes} días
 
-Después de tu prueba, podrás continuar con una suscripción mensual de solo **${PRECIO_SUSCRIPCION_MENSUAL} MXN** (equivalente a ${PRECIO_SUSCRIPCION_DIARIO:.2f} por día).
+Después de tu cortesía, podrás continuar con una suscripción mensual de solo **${PRECIO_SUSCRIPCION_MENSUAL} MXN** (equivalente a ${PRECIO_SUSCRIPCION_DIARIO:.2f} por día).
 
 💫 *Menos que un café al día para tu bienestar emocional continuo*
 
@@ -695,7 +695,7 @@ Después de tu prueba, podrás continuar con una suscripción mensual de solo **
                 return f"""
 💫 **Información sobre Alma - Suscripción**
 
-Tu prueba gratuita de {DIAS_TRIAL_GRATIS} días ha concluido.
+Tu periodo de cortesía de {DIAS_TRIAL_GRATIS} días ha concluido.
 
 Para continuar disfrutando de Alma, la suscripción es de solo **${PRECIO_SUSCRIPCION_MENSUAL} MXN al mes** (equivalente a ${PRECIO_SUSCRIPCION_DIARIO:.2f} por día).
 
