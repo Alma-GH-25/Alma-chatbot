@@ -625,100 +625,58 @@ def manejar_comando_suscripcion(user_phone, user_message):
     
     # 🆕 Manejar preguntas sobre si es gratis
     preguntas_gratis = [
-        "servicio es gratis",
-        "servicio es gratuito", 
-        "servicio tiene costo",
-        "servicio no tiene costo",
-        "servicio no cuesta nada",
-        "servicio es sin pago",
-        "servicio es de pago",
-        "servicio tiene precio",    
-        "servicio cuesta algo",    
-        "necesito pagar por el servicio",
-        "Alma es gratis",
-        "Alma es gratuita",
-        "Alma tiene costo",
-        "Alma no tiene costo",        
-        "Alma no cuesta nada",
-        "Alma es sin pago",
-        "Alma es de pago",
-        "Alma tiene precio",
-        "Alma cuesta algo",
-        "es gratis Alma",
-        "es gratuita Alma", 
-        "tiene costo Alma",
-        "no tiene costo Alma",
-        "no cuesta nada Alma",
-        "es sin pago Alma",
-        "es de pago Alma",
-        "tiene precio Alma",
-        "cuesta algo Alma",
-        "necesito pagar por Alma",
-        "chat es gratis",
-        "chat es gratuito",
-        "chat tiene costo",
-        "chat no tiene costo",        
-        "chat no cuesta nada",
-        "chat es sin pago",
-        "chat es de pago",
-        "chat tiene precio",
-        "chat cuesta algo",
-        "es gratis el chat",
-        "es gratuito el chat", 
-        "tiene costo el chat",
-        "no tiene costo el chat",
-        "no cuesta nada el chat",
-        "es sin pago el chat",
-        "es de pago el chat",
-        "tiene precio el chat",
-        "cuesta algo el chat",    
-        "necesito pagar por el chat",
-        "chatbot es gratis",
-        "chatbot es gratuito",
-        "chatbot tiene costo",
-        "chatbot no tiene costo",        
-        "chatbot no cuesta nada",
-        "chatbot es sin pago",
-        "chatbot es de pago",
-        "chatbot tiene precio",
-        "es gratis el chatbot",
-        "es gratuito el chatbot", 
-        "tiene costo el chatbot",
-        "no tiene costo el chatbot",
-        "no cuesta nada el chatbot",
-        "es sin pago el chatbot",
-        "es de pago el chatbot",
-        "tiene precio el chatbot",
-        "cuesta algo el chatbot",  
-        "necesito pagar por el chatbot",
-        "chat bot es gratis",
-        "chat bot es gratuito",
-        "chat bot tiene costo",
-        "chat bot no tiene costo",        
-        "chat bot no cuesta nada",
-        "chat bot es sin pago",
-        "chat bot es de pago",
-        "chat bot tiene precio",   
-        "es gratis el chat bot",
-        "es gratuito el chat bot", 
-        "tiene costo el chat bot",
-        "no tiene costo el chat bot",
-        "no cuesta nada el chat bot",
-        "es sin pago el chat bot",
-        "es de pago el chat bot",
-        "tiene precio el chat bot",
-        "cuesta algo el chat bot",    
-        "necesito pagar por el chat bot",
+        "servicio es gratis", "servicio es gratuito", "servicio tiene costo",
+        "servicio no tiene costo", "servicio no cuesta nada", "servicio es sin pago",
+        "servicio es de pago", "servicio tiene precio", "servicio cuesta algo",    
+        "necesito pagar por el servicio", "alma es gratis", "alma es gratuita",
+        "alma tiene costo", "alma no tiene costo", "alma no cuesta nada",
+        "alma es sin pago", "alma es de pago", "alma tiene precio", "alma cuesta algo",
+        "es gratis alma", "es gratuita alma", "tiene costo alma", "no tiene costo alma",
+        "no cuesta nada alma", "es sin pago alma", "es de pago alma", "tiene precio alma",
+        "cuesta algo alma", "necesito pagar por alma", "chat es gratis", "chat es gratuito",
+        "chat tiene costo", "chat no tiene costo", "chat no cuesta nada", "chat es sin pago",
+        "chat es de pago", "chat tiene precio", "chat cuesta algo", "es gratis el chat",
+        "es gratuito el chat", "tiene costo el chat", "no tiene costo el chat",
+        "no cuesta nada el chat", "es sin pago el chat", "es de pago el chat",
+        "tiene precio el chat", "cuesta algo el chat", "necesito pagar por el chat",
+        "chatbot es gratis", "chatbot es gratuito", "chatbot tiene costo",
+        "chatbot no tiene costo", "chatbot no cuesta nada", "chatbot es sin pago",
+        "chatbot es de pago", "chatbot tiene precio", "es gratis el chatbot",
+        "es gratuito el chatbot", "tiene costo el chatbot", "no tiene costo el chatbot",
+        "no cuesta nada el chatbot", "es sin pago el chatbot", "es de pago el chatbot",
+        "tiene precio el chatbot", "cuesta algo el chatbot", "necesito pagar por el chatbot",
+        "chat bot es gratis", "chat bot es gratuito", "chat bot tiene costo",
+        "chat bot no tiene costo", "chat bot no cuesta nada", "chat bot es sin pago",
+        "chat bot es de pago", "chat bot tiene precio", "es gratis el chat bot",
+        "es gratuito el chat bot", "tiene costo el chat bot", "no tiene costo el chat bot",
+        "no cuesta nada el chat bot", "es sin pago el chat bot", "es de pago el chat bot",
+        "tiene precio el chat bot", "cuesta algo el chat bot", "necesito pagar por el chat bot"
     ]
     
+    # Detectar preguntas específicas sobre gratuidad
     for pregunta in preguntas_gratis:
         if pregunta in message_lower:
-            print(f"💰 Pregunta sobre gratuidad detectada: {pregunta} en '{user_message}'")
+            print(f"💰 Pregunta sobre gratuidad detectada: '{pregunta}' en '{user_message}'")
             
-            # Verificar si el usuario está en trial
+            # Obtener información del usuario
+            subscription_info = get_user_subscription(user_phone)
             dias_restantes = dias_restantes_trial(user_phone)
+            tiene_suscripcion_activa = verificar_suscripcion_activa(user_phone)
             
-            if dias_restantes > 0:
+            if tiene_suscripcion_activa:
+                dias_suscripcion = dias_restantes_suscripcion(user_phone)
+                return f"""
+✅ **Tu suscripción está activa**
+
+🎉 ¡Genial! Ya tienes acceso completo a Alma.
+
+📅 **Días restantes de tu suscripción:** {dias_suscripcion} días
+
+💫 Disfruta de todos los beneficios de tu membresía premium.
+
+¿En qué puedo ayudarte hoy? 🌱
+"""
+            elif dias_restantes > 0:
                 return f"""
 🌟 **Información sobre Alma - Prueba Gratuita** 🌟
 
@@ -733,93 +691,43 @@ Después de tu prueba, podrás continuar con una suscripción mensual de solo **
 ¿Te gustaría conocer los detalles de la suscripción? ¡Solo dime! 🌱
 """
             else:
+                # Trial terminado, ofrecer suscripción
                 return f"""
 💫 **Información sobre Alma - Suscripción**
 
-Alma ofrece una **prueba gratuita de {DIAS_TRIAL_GRATIS} días** para que experimentes los beneficios.
+Tu prueba gratuita de {DIAS_TRIAL_GRATIS} días ha concluido.
 
-Una vez finalizada la prueba, la suscripción es de solo **${PRECIO_SUSCRIPCION_MENSUAL} MXN al mes** (equivalente a ${PRECIO_SUSCRIPCION_DIARIO:.2f} por día).
+Para continuar disfrutando de Alma, la suscripción es de solo **${PRECIO_SUSCRIPCION_MENSUAL} MXN al mes** (equivalente a ${PRECIO_SUSCRIPCION_DIARIO:.2f} por día).
 
 🌟 *Invierte en tu paz mental por menos del costo de un café diario*
 
-¿Te gustaría conocer los métodos de pago? ¡Estoy aquí para ayudarte! 🌱
+{MENSAJE_SUSCRIPCION}
 """
-    
+
     # 🚨 SOLO RESPUESTA A PETICIONES EXPLÍCITAS
     peticiones_explicitas = [        
-        "cómo suscribirme",
-        "cómo me suscribo",
-        "cómo me doy de alta",
-        "que cuesta",
-        "quiero suscribirme",
-        "deseo suscribirme",
-        "quiero registrarme",
-        "quiero darme de alta",
-        "activar mi suscripción",
-        "iniciar suscripción",
-        "empezar mi suscripción",
-        "contratar el servicio",
-        "cómo contratar",
-        "cómo me uno",
-        "cómo acceder al servicio",
-        "cómo obtener acceso",
-        "cómo pago",
-        "quiero pagar",
-        "deseo pagar",
-        "realizar el pago",
-        "hacer el pago",
-        "pagar ahora",
-        "cómo hacer el pago",
-        "cómo abono",
-        "cómo transferir",
-        "cómo depositar",
-        "cómo hacer la transferencia",
-        "cómo enviar el dinero",
-        "cómo completar el pago",
-        "datos bancarios",
-        "número de cuenta",
-        "clabe interbancaria",
-        "cuenta para pagar",
-        "cuenta de depósito",
-        "datos para transferencia",
-        "datos para depósito",
-        "información de pago",
-        "datos para abonar",
-        "datos para enviar dinero",
-        "cómo pagar por transferencia",
-        "cómo pagar por depósito",
-        "cómo funciona la suscripción",
-        "qué necesito para suscribirme",       
-        "cuánto cuesta",
-        "cuál es el precio",
-        "formas de pago",
-        "métodos de pago",
-        "opciones de pago",
-        "información de pago",
-        "info de pago",
-        "información para pago",
-        "info para pago",
-        "información para pagar",
-        "info para pagar",     
-        "información de precio",
-        "info de precio",
-        "información de alta",
-        "info de alta",
-        "información de depósito",
-        "info de depósito",
-        "información para depositar",
-        "info para depositar",
-        "información de suscripción",
-        "info de suscripción",
-        "información para suscripción",
-        "info para suscripción",
-        "información para suscribirse",
-        "info para suscribirse",
-        "información para suscribirme",
-        "info para suscribirme",    
-        "cómo renovar mi suscripción",
-        "quiero renovar",
-        "quiero actualizar mi plan"
+        "cómo suscribirme", "cómo me suscribo", "cómo me doy de alta",
+        "quiero suscribirme", "deseo suscribirme", "quiero registrarme",
+        "quiero darme de alta", "activar mi suscripción", "iniciar suscripción",
+        "empezar mi suscripción", "contratar el servicio", "cómo contratar",
+        "cómo me uno", "cómo acceder al servicio", "cómo obtener acceso",
+        "cómo pago", "quiero pagar", "deseo pagar", "realizar el pago",
+        "hacer el pago", "pagar ahora", "cómo hacer el pago", "cómo abono",
+        "cómo transferir", "cómo depositar", "cómo hacer la transferencia",
+        "cómo enviar el dinero", "cómo completar el pago", "datos bancarios",
+        "número de cuenta", "clabe interbancaria", "cuenta para pagar",
+        "cuenta de depósito", "datos para transferencia", "datos para depósito",
+        "información de pago", "datos para abonar", "datos para enviar dinero",
+        "cómo pagar por transferencia", "cómo pagar por depósito", "cómo funciona la suscripción",
+        "qué necesito para suscribirme", "cuánto cuesta", "cuál es el precio",
+        "formas de pago", "métodos de pago", "opciones de pago", "información de pago",
+        "info de pago", "información para pago", "info para pago", "información para pagar",
+        "info para pagar", "información de precio", "info de precio", "información de alta",
+        "info de alta", "información de depósito", "info de depósito", "información para depositar",
+        "info para depositar", "información de suscripción", "info de suscripción",
+        "información para suscripción", "info para suscripción", "información para suscribirse",
+        "info para suscribirse", "información para suscribirme", "info para suscribirme",    
+        "cómo renovar mi suscripción", "quiero renovar", "quiero actualizar mi plan"
     ]
     
     # ✅ SOLO si el mensaje contiene EXACTAMENTE una petición explícita
