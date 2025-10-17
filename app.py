@@ -623,46 +623,30 @@ Te espero en este tu espacio cuando te sientas mejor o quieras seguir hablando.�
 def manejar_comando_suscripcion(user_phone, user_message):
     message_lower = user_message.lower().strip()
     
-    # 🎯 DETECCIÓN MÁS INTELIGENTE - SOLO CUANDO HAY INTENCIÓN EXPLÍCITA
-    triggers_suscripcion_explicitos = [
-        "suscribirme", "suscribir", "suscribo", "renovar", "renuevo",
-        "cómo pago", "cómo pagar", "quiero pagar", "deseo pagar", 
-        "cuánto cuesta", "precio", "costo", "mensualidad",
-        "datos bancarios", "número de cuenta", "clabe", "banco",
-        "información de pago", "informes de suscripción",
-        "cómo me suscribo", "cómo renovar", "quiero suscribirme"
+    # 🚨 VERSIÓN ULTRA-CONSERVADORA - SOLO RESPUESTA A PETICIONES EXPLÍCITAS
+    peticiones_explicitas = [
+        "suscribirme", 
+        "renovar",
+        "cómo pago",
+        "quiero pagar", 
+        "datos bancarios",
+        "número de cuenta",
+        "clabe interbancaria"
     ]
     
-    # ✅ SOLO ACTIVAR CON INTENCIÓN CLARA DE SUSCRIPCIÓN
-    for trigger in triggers_suscripcion_explicitos:
-        if trigger in message_lower:
-            print(f"💰 Solicitud de suscripción detectada: {user_message}")
+    # ✅ SOLO si el mensaje contiene EXACTAMENTE una petición explícita
+    for peticion in peticiones_explicitas:
+        if peticion in message_lower:
+            print(f"💰 Solicitud EXPLÍCITA detectada: {peticion} en '{user_message}'")
             return MENSAJE_SUSCRIPCION
     
-    # 🛡️ DETECCIÓN DE COMPROBANTE - MÁS CONSERVADORA Y EVITANDO "ALMA"
-    palabras_comprobante = ["comprobante", "captura", "recibo", "voucher", "pantallazo"]
-    
-    if any(palabra in message_lower for palabra in palabras_comprobante):
-        # ✅ CONTEXTO DE PAGO MÁS ESTRICTO - EVITAR QUE "ALMA" ACTIVE EL CONTEXTO
-        contexto_pago_fuerte = any(contexto in message_lower for contexto in [
-            "pagué", "transferí", "deposité", "realicé el pago", "hice el pago",
-            "transferencia", "depósito", "pago realizado", "ya pagué", "mensualidad"
-        ])
-        
-        # ❌ CONTEXTOS NEGATIVOS
-        contexto_negativo = any(negativo in message_lower for negativo in [
-            "cobraron", "engañaron", "frustrado", "problema", "error", "incorrecto", 
-            "queja", "reclamo", "mal", "pésimo", "terrible", "estafa", "fraude"
-        ])
-        
-        # 🎯 JERARQUÍA DE DECISIONES:
-        if contexto_negativo:
-            print(f"🔍 Comprobante en contexto negativo - Ignorar: {user_message}")
-            return None
-        elif contexto_pago_fuerte:
-            print(f"📋 Comprobante de pago CONFIRMADO: {user_message}")
+    # 🛡️ COMPROBANTES - SOLO con confirmación explícita de pago
+    if any(palabra in message_lower for palabra in ["comprobante", "captura"]):
+        if any(confirmacion in message_lower for confirmacion in ["ya pagué", "pagué", "transferí", "deposité"]):
+            print(f"📋 Comprobante CONFIRMADO: {user_message}")
             return "📋 **Comprobante recibido**\nHemos registrado tu comprobante. Un administrador activará tu suscripción en las próximas 24 horas. ¡Gracias por confiar en Alma! 🌱"
     
+    print(f"✅ Mensaje normal - No es solicitud comercial: '{user_message}'")
     return None
 
 # ✅ LIMPIEZA MEJORADA - AHORA SOLO LIMPIA MEMORIA TEMPORAL
