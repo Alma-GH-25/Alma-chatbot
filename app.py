@@ -620,136 +620,192 @@ Te espero en este tu espacio cuando te sientas mejor o quieras seguir hablando.�
 """
     return enviar_respuesta_twilio(MENSAJE_CRISIS, telefono)
 
-def manejar_comando_suscripcion(user_phone, user_message):
+def manejar_comando_suscripcion(user_phone, user_message, conversation_history):
+    """Sistema unificado de detección de intención comercial"""
     message_lower = user_message.lower().strip()
     
-    # 🆕 Manejar preguntas sobre si es gratis
-    preguntas_gratis = [
-        "servicio es gratis", "servicio es gratuito", "servicio tiene costo",
-        "servicio no tiene costo", "servicio no cuesta nada", "servicio es sin pago",
-        "servicio es de pago", "servicio tiene precio", "servicio cuesta algo",    
-        "necesito pagar por el servicio", "alma es gratis", "alma es gratuita",
-        "alma tiene costo", "alma no tiene costo", "alma no cuesta nada",
-        "alma es sin pago", "alma es de pago", "alma tiene precio", "alma cuesta algo",
-        "es gratis alma", "es gratuita alma", "tiene costo alma", "no tiene costo alma",
-        "no cuesta nada alma", "es sin pago alma", "es de pago alma", "tiene precio alma",
-        "cuesta algo alma", "necesito pagar por alma", "alma, eres gratis", "alma, eres gratuita",
-        "alma, tienes costo", "alma, no tienes costo", "alma, no cuestas nada",
-        "alma, eres sin pago", "alma, eres de pago", "alma, tienes precio", "alma, cuestas algo",
-        "eres gratis alma", "eres gratuita alma", "tienes costo alma", "no tienes costo alma",
-        "no cuestas nada alma", "eres sin pago alma", "eres de pago alma", "tienes precio alma",
-        "cuestas algo alma", "necesito pagar por ti alma", "chat es gratis", "chat es gratuito",
-        "chat tiene costo", "chat no tiene costo", "chat no cuesta nada", "chat es sin pago",
-        "chat es de pago", "chat tiene precio", "chat cuesta algo", "es gratis el chat",
-        "es gratuito el chat", "tiene costo el chat", "no tiene costo el chat",
-        "no cuesta nada el chat", "es sin pago el chat", "es de pago el chat",
-        "tiene precio el chat", "cuesta algo el chat", "necesito pagar por el chat",
-        "chatbot es gratis", "chatbot es gratuito", "chatbot tiene costo",
-        "chatbot no tiene costo", "chatbot no cuesta nada", "chatbot es sin pago",
-        "chatbot es de pago", "chatbot tiene precio", "es gratis el chatbot",
-        "es gratuito el chatbot", "tiene costo el chatbot", "no tiene costo el chatbot",
-        "no cuesta nada el chatbot", "es sin pago el chatbot", "es de pago el chatbot",
-        "tiene precio el chatbot", "cuesta algo el chatbot", "necesito pagar por el chatbot",
-        "chat bot es gratis", "chat bot es gratuito", "chat bot tiene costo",
-        "chat bot no tiene costo", "chat bot no cuesta nada", "chat bot es sin pago",
-        "chat bot es de pago", "chat bot tiene precio", "es gratis el chat bot",
-        "es gratuito el chat bot", "tiene costo el chat bot", "no tiene costo el chat bot",
-        "no cuesta nada el chat bot", "es sin pago el chat bot", "es de pago el chat bot",
-        "tiene precio el chat bot", "cuesta algo el chat bot", "necesito pagar por el chat bot"
-    ]
+    # 1. 🎯 ANÁLISIS SEMÁNTICO INTELIGENTE (detecta "es gratis", "cuanto cuesta", etc.)
+    if analizar_intencion_comercial(user_message, conversation_history):
+        print(f"💰 Intención comercial detectada semánticamente: '{user_message}'")
+        return generar_respuesta_suscripcion(user_phone)
     
-    # Detectar preguntas específicas sobre gratuidad
-    for pregunta in preguntas_gratis:
-        if pregunta in message_lower:
-            print(f"💰 Pregunta sobre gratuidad detectada: '{pregunta}' en '{user_message}'")
-            
-            # Obtener información del usuario
-            subscription_info = get_user_subscription(user_phone)
-            dias_restantes = dias_restantes_trial(user_phone)
-            tiene_suscripcion_activa = verificar_suscripcion_activa(user_phone)
-            
-            if tiene_suscripcion_activa:
-                dias_suscripcion = dias_restantes_suscripcion(user_phone)
-                return f"""
-✅ **Tu suscripción está activa**
-
-🎉 ¡Genial!, ya tienes acceso completo a Alma.
-
-📅 **Días restantes de tu suscripción:** {dias_suscripcion} días
-
-💫 Disfruta de todos los beneficios de tu membresía.
-
-¿En qué puedo ayudarte hoy? 🌱
-"""
-            elif dias_restantes > 0:
-                return f"""
-🌟 **Información sobre Alma - Periodo de cortesía** 🌟
-
-¡Sí!, actualmente estás disfrutando de tu periodo de cortesía de {DIAS_TRIAL_GRATIS} días**.
-
-📅 **Días restantes de tu experiencia:** {dias_restantes} días
-
-Después de tu cortesía, podrás continuar con una suscripción mensual de solo **${PRECIO_SUSCRIPCION_MENSUAL} MXN** (equivalente a ${PRECIO_SUSCRIPCION_DIARIO:.2f} por día).
-
-💫 *Menos que un café al día para tu bienestar emocional continuo*
-
-¿Te gustaría conocer los detalles de la suscripción? ¡Solo dime! 🌱
-"""
-            else:
-                # Trial terminado, ofrecer suscripción
-                return f"""
-💫 **Información sobre Alma - Suscripción**
-
-Tu periodo de cortesía de {DIAS_TRIAL_GRATIS} días ha concluido.
-
-Para continuar disfrutando de Alma, la suscripción es de solo **${PRECIO_SUSCRIPCION_MENSUAL} MXN al mes** (equivalente a ${PRECIO_SUSCRIPCION_DIARIO:.2f} por día).
-
-🌟 *Invierte en tu paz mental por menos del costo de un café diario*
-
-{MENSAJE_SUSCRIPCION}
-"""
-
-    # 🚨 SOLO RESPUESTA A PETICIONES EXPLÍCITAS
-    peticiones_explicitas = [        
-        "datos de suscripción", "datos para suscripción", "datos para suscribirse", 
-        "datos para suscribirme", "datos de pago", "datos para pago", "datos para pagar", 
-        "cómo suscribirme", "cómo me suscribo", "cómo me doy de alta", "quiero suscribirme",
-        "deseo suscribirme", "quiero registrarme", "quiero darme de alta", "activar mi suscripción", 
-        "iniciar suscripción", "empezar mi suscripción", "contratar el servicio", "cómo contratar",
-        "cómo me uno", "cómo acceder al servicio", "cómo obtener acceso",
-        "cómo pago", "quiero pagar", "deseo pagar", "realizar el pago",
-        "hacer el pago", "pagar ahora", "cómo hacer el pago", "cómo abono",
-        "cómo transferir", "cómo depositar", "cómo hacer la transferencia",
-        "cómo enviar el dinero", "cómo completar el pago", "datos bancarios",
-        "número de cuenta", "clabe interbancaria", "cuenta para pagar",
+    # 2. 📋 TRIGGERS ESPECÍFICOS COMPLETOS
+    triggers_especificos = [
+        # DATOS Y INFORMACIÓN
+        "datos de suscripción", "datos para suscripción", "datos para suscribirse",
+        "datos para suscribirme", "datos de pago", "datos para pago", "datos para pagar",
+        "datos bancarios", "número de cuenta", "clabe interbancaria", "cuenta para pagar",
         "cuenta de depósito", "datos para transferencia", "datos para depósito",
         "información de pago", "datos para abonar", "datos para enviar dinero",
-        "cómo pagar por transferencia", "cómo pagar por depósito", "cómo funciona la suscripción",
-        "qué necesito para suscribirme", "cuánto cuesta", "cuál es el precio",
-        "formas de pago", "métodos de pago", "opciones de pago", "información de pago",
-        "info de pago", "información para pago", "info para pago", "información para pagar",
-        "info para pagar", "información de precio", "info de precio", "información de alta",
-        "info de alta", "información de depósito", "info de depósito", "información para depositar",
+        
+        # SUSCRIPCIÓN Y REGISTRO
+        "cómo suscribirme", "cómo me suscribo", "cómo me doy de alta", "quiero suscribirme",
+        "deseo suscribirme", "quiero registrarme", "quiero darme de alta", "activar mi suscripción",
+        "iniciar suscripción", "empezar mi suscripción", "contratar el servicio", "cómo contratar",
+        "cómo me uno", "cómo acceder al servicio", "cómo obtener acceso",
+        
+        # PAGO Y TRANSACCIONES
+        "cómo pago", "quiero pagar", "deseo pagar", "realizar el pago", "hacer el pago",
+        "pagar ahora", "cómo hacer el pago", "cómo abono", "cómo transferir", "cómo depositar",
+        "cómo hacer la transferencia", "cómo enviar el dinero", "cómo completar el pago",
+        "cómo pagar por transferencia", "cómo pagar por depósito",
+        
+        # PRECIO Y COSTOS
+        "cuánto cuesta", "cuál es el precio", "formas de pago", "métodos de pago", 
+        "opciones de pago", "información de precio", "info de precio",
+        
+        # INFORMACIÓN GENERAL
+        "cómo funciona la suscripción", "qué necesito para suscribirme",
+        "información de pago", "info de pago", "información para pago", "info para pago",
+        "información para pagar", "info para pagar", "información de alta", "info de alta",
+        "información de depósito", "info de depósito", "información para depositar",
         "info para depositar", "información de suscripción", "info de suscripción",
         "información para suscripción", "info para suscripción", "información para suscribirse",
-        "info para suscribirse", "información para suscribirme", "info para suscribirme",    
-        "cómo renovar mi suscripción", "quiero renovar", "quiero actualizar mi plan"
+        "info para suscribirse", "información para suscribirme", "info para suscribirme",
+        
+        # RENOVACIÓN Y ACTUALIZACIÓN
+        "cómo renovar mi suscripción", "quiero renovar", "quiero actualizar mi plan",
+        
+        # GRATUIDAD (ahora incluido aquí)
+        "es gratis", "es gratuito", "no tiene costo", "es sin pago", "es free"
     ]
     
-    # ✅ SOLO si el mensaje contiene EXACTAMENTE una petición explícita
-    for peticion in peticiones_explicitas:
-        if peticion in message_lower:
-            print(f"💰 Solicitud EXPLÍCITA detectada: {peticion} en '{user_message}'")
-            return MENSAJE_SUSCRIPCION
+    for trigger in triggers_especificos:
+        if trigger in message_lower:
+            print(f"💰 Trigger específico detectado: {trigger}")
+            return generar_respuesta_suscripcion(user_phone)
     
-    # 🛡️ COMPROBANTES - SOLO con confirmación explícita de pago
+    # 3. 💬 DETECCIÓN DE CONVERSACIONES NATURALES
+    conversaciones_naturales = [
+        # PATRONES DE PREGUNTAS SOBRE PRECIO
+        ("cuanto", ["cuesta", "vale", "es", "hay que pagar", "debo pagar"]),
+        ("precio", ["de alma", "del servicio", "mensual", "anual", "tiene"]),
+        ("costo", ["del servicio", "de alma", "mensual", "tiene"]),
+        ("valor", ["del servicio", "de alma", "mensual"]),
+        
+        # PATRONES DE SUSCRIPCIÓN
+        ("suscripción", ["cómo", "como", "quiero", "deseo", "activar", "iniciar"]),
+        ("suscribir", ["me", "cómo", "como", "quiero", "deseo"]),
+        ("suscripcion", ["cómo", "como", "quiero", "deseo", "activar"]),
+        
+        # PATRONES DE PAGO
+        ("pago", ["cómo", "como", "dónde", "donde", "quiero", "deseo", "realizar"]),
+        ("pagar", ["cómo", "como", "dónde", "donde", "quiero", "deseo"]),
+        ("abonar", ["cómo", "como", "dónde", "donde"]),
+        ("transferir", ["cómo", "como", "dónde", "donde"]),
+        ("depositar", ["cómo", "como", "dónde", "donde"]),
+        
+        # PATRONES DE DATOS BANCARIOS
+        ("datos", ["bancarios", "de pago", "para pagar", "cuenta", "transferencia"]),
+        ("cuenta", ["bancaria", "para pagar", "depósito", "transferencia"]),
+        ("clabe", ["interbancaria", "para transferir"]),
+        ("banco", ["para depositar", "para transferir"]),
+        
+        # PATRONES DE INFORMACIÓN
+        ("información", ["de pago", "para pagar", "sobre precios", "suscripción"]),
+        ("info", ["de pago", "para pagar", "sobre precios", "suscripción"]),
+        
+        # PATRONES DE ACCIÓN
+        ("quiero", ["pagar", "comprar", "contratar", "suscribirme", "registrarme"]),
+        ("deseo", ["pagar", "comprar", "contratar", "suscribirme", "registrarme"]),
+        ("necesito", ["pagar", "suscribirme", "información de pago"]),
+        
+        # PATRONES DE MÉTODOS
+        ("método", ["de pago", "para pagar"]),
+        ("metodo", ["de pago", "para pagar"]),
+        ("forma", ["de pago", "para pagar"]),
+        ("opción", ["de pago", "para pagar"]),
+        ("opcion", ["de pago", "para pagar"]),
+        
+        # PATRONES DE RENOVACIÓN
+        ("renovar", ["mi suscripción", "suscripción", "cómo", "como"]),
+        ("actualizar", ["mi plan", "plan", "suscripción"])
+    ]
+    
+    for palabra, combinaciones in conversaciones_naturales:
+        if palabra in message_lower:
+            for combo in combinaciones:
+                if combo in message_lower:
+                    print(f"💬 Conversación natural detectada: '{palabra} {combo}'")
+                    return generar_respuesta_suscripcion(user_phone)
+    
+    # 4. 🛡️ COMPROBANTES - SOLO con confirmación explícita de pago
     if any(palabra in message_lower for palabra in ["comprobante", "captura"]):
         if any(confirmacion in message_lower for confirmacion in ["ya pagué", "pagué", "transferí", "deposité"]):
             print(f"📋 Comprobante CONFIRMADO: {user_message}")
             return "📋 **Comprobante recibido**\nHemos registrado tu comprobante. Un administrador activará tu suscripción en las próximas 24 horas. ¡Gracias por confiar en Alma! 🌱"
     
-    print(f"✅ Mensaje normal - No es solicitud comercial: '{user_message}'")
     return None
+
+def analizar_intencion_comercial(user_message, conversation_history):
+    """Análisis más inteligente que considera contexto"""
+    message_lower = user_message.lower().strip()
+    
+    # 1. Detectar palabras clave con ponderación (AGREGAR GRATUIDAD)
+    palabras_clave = {
+        'cuanto': 3, 'cuánto': 3, 'precio': 3, 'costo': 3, 'valor': 2,
+        'pagar': 3, 'pago': 3, 'suscripción': 4, 'suscripcion': 4,
+        'cuenta': 2, 'banco': 2, 'clabe': 3, 'transferencia': 2,
+        'depositar': 2, 'comprar': 2, 'contratar': 2, 'plan': 2,
+        'membresía': 3, 'membresia': 3, 'datos bancarios': 4,
+        'información de pago': 4, 'forma de pago': 3,
+        'abonar': 2, 'depósito': 2, 'deposito': 2, 'renovar': 2,
+        'actualizar': 2, 'registrarme': 2, 'darme de alta': 3,
+        'gratis': 3, 'gratuito': 3, 'sin costo': 4, 'sin pago': 3 
+    }
+    
+    # Calcular puntuación
+    puntuacion = 0
+    for palabra, peso in palabras_clave.items():
+        if palabra in message_lower:
+            puntuacion += peso
+    
+    # 2. Analizar contexto de la conversación
+    contexto_comercial = any(
+        any(palabra in msg['user'].lower() for palabra in [
+            'precio', 'pago', 'suscripción', 'cuanto', 'costo', 'banco',
+            'cuenta', 'transferencia', 'depósito'
+        ])
+        for msg in conversation_history[-3:]  # Últimos 3 mensajes
+    )
+    
+    if contexto_comercial:
+        puntuacion += 2  # Bonus por contexto
+    
+    # 3. Detectar preguntas directas
+    es_pregunta_directa = any(message_lower.startswith(prefix) for prefix in 
+                            ['cuanto', 'cuánto', 'cómo', 'como', 'dónde', 'donde', 'qué', 'que'])
+    
+    if es_pregunta_directa and puntuacion > 0:
+        puntuacion += 2
+    
+    print(f"🔍 Análisis de intención: '{user_message}' -> Puntuación: {puntuacion}")
+    return puntuacion >= 4  # Umbral más bajo para mejor detección
+
+def generar_respuesta_suscripcion(user_phone):
+    """Genera respuesta personalizada según el estado del usuario"""
+    dias_restantes = dias_restantes_trial(user_phone)
+    tiene_suscripcion = verificar_suscripcion_activa(user_phone)
+    
+    if tiene_suscripcion:
+        dias_susc = dias_restantes_suscripcion(user_phone)
+        return f"""
+✅ **Tu suscripción está activa**
+
+📅 Días restantes: {dias_susc} días
+
+¿En qué más puedo ayudarte? 🌱
+"""
+    elif dias_restantes > 0:
+        return f"""
+💫 **Información de Suscripción**
+
+Actualmente tienes **{dias_restantes} días** de prueba gratuita restantes.
+
+{MENSAJE_SUSCRIPCION}
+"""
+    else:
+        return MENSAJE_SUSCRIPCION
 
 # ✅ LIMPIEZA MEJORADA - AHORA SOLO LIMPIA MEMORIA TEMPORAL
 def ejecutar_limpieza_automatica():
@@ -796,23 +852,27 @@ def webhook():
         
         print(f"🔔 MENSAJE RECIBIDO de {user_phone}: {user_message}")
         
-        # 1. VERIFICAR ACCESO (sistema unificado persistente)
+        # 1. VERIFICAR ACCESO
         if not usuario_puede_chatear(user_phone):
             return enviar_respuesta_twilio(MENSAJE_INVITACION_SUSCRIPCION, user_phone)
         
-        # 2. MANEJAR COMANDOS DE SUSCRIPCIÓN (MÁS AGRESIVO)
-        respuesta_suscripcion = manejar_comando_suscripcion(user_phone, user_message)
+        # 2. OBTENER SESIÓN
+        session = get_user_session(user_phone)
+        
+        # 3. 🆕 DETECCIÓN MEJORADA DE SUSCRIPCIÓN (con conversation_history)
+        respuesta_suscripcion = manejar_comando_suscripcion(
+            user_phone, 
+            user_message, 
+            session['conversation_history']  # ← AGREGAR ESTE PARÁMETRO
+        )
         if respuesta_suscripcion:
             return enviar_respuesta_twilio(respuesta_suscripcion, user_phone)
         
-        # 3. VERIFICAR LÍMITE DIARIO PERSISTENTE
+        # 4. VERIFICAR LÍMITE DIARIO PERSISTENTE
         if usuario_ya_uso_sesion_hoy(user_phone):
             tiempo_restante = obtener_proximo_reset()
             mensaje_bloqueo = f"¡Hola! Ya disfrutaste tu sesión de Alma de hoy. Podrás iniciar tu próxima sesión en {tiempo_restante}. ¡Estaré aquí para ti! 🌱"
             return enviar_respuesta_twilio(mensaje_bloqueo, user_phone)
-        
-        # 4. OBTENER SESIÓN EN MEMORIA
-        session = get_user_session(user_phone)
 
         # 5. MOSTRAR PRIVACIDAD SOLO AL INICIO DE CONVERSACIÓN
         if len(session['conversation_history']) == 0:
