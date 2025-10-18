@@ -541,84 +541,77 @@ def detectar_crisis_real(user_message):
     print(f"✅ No se detectó crisis - Mensaje normal: {mensaje[:50]}...")
     return False
 
-def construir_prompt_alma(user_message, user_session, user_phone):
-    tiempo_transcurrido_minutos = int((datetime.now().timestamp() - user_session['session_start_time']) / 60)
+# --- SISTEMA MEJORADO DE DETECCIÓN DE SUSCRIPCIÓN ---
+
+def analizar_intencion_comercial(user_message, conversation_history):
+    """Análisis más inteligente que considera contexto"""
+    message_lower = user_message.lower().strip()
     
-    if tiempo_transcurrido_minutos >= LIMITE_SESION_MAXIMO_MINUTOS:
-        estatus_sesion = f"LIMITE EXCEDIDO ({LIMITE_SESION_MAXIMO_MINUTOS} MINUTOS). DEBES CERRAR INMEDIATAMENTE."
-    elif tiempo_transcurrido_minutos >= DURACION_SESION_NORMAL_MINUTOS:
-        estatus_sesion = f"CIERRE FLEXIBLE. Ya superaste los {DURACION_SESION_NORMAL_MINUTOS} minutos. Mantente en fase de cierre."
-    elif tiempo_transcurrido_minutos >= INTERVALO_RECORDATORIO_MINUTOS:
-        estatus_sesion = "AVISO DE CIERRE ENVIADO. Inicia transición a cierre."
-    else:
-        estatus_sesion = f"Sesión en curso. {DURACION_SESION_NORMAL_MINUTOS - tiempo_transcurrido_minutos} minutos restantes."
-        
-    conversation_history = ""
-    for msg in user_session['conversation_history'][-3:]:
-        conversation_history += f"Usuario: {msg['user']}\nAlma: {msg['alma']}\n"
+    # 1. Detectar palabras clave con ponderación
+    palabras_clave = {
+        'cuanto': 3, 'cuánto': 3, 'precio': 3, 'costo': 3, 'valor': 2,
+        'pagar': 3, 'pago': 3, 'suscripción': 4, 'suscripcion': 4,
+        'cuenta': 2, 'banco': 2, 'clabe': 3, 'transferencia': 2,
+        'depositar': 2, 'comprar': 2, 'contratar': 2, 'plan': 2,
+        'membresía': 3, 'membresia': 3, 'datos bancarios': 4,
+        'información de pago': 4, 'forma de pago': 3,
+        'abonar': 2, 'depósito': 2, 'deposito': 2, 'renovar': 2,
+        'actualizar': 2, 'registrarme': 2, 'darme de alta': 3,
+        'gratis': 3, 'gratuito': 3, 'sin costo': 4, 'sin pago': 3 
+    }
     
-    prompt = ALMA_PROMPT_BASE.format(
-        tiempo_transcurrido=tiempo_transcurrido_minutos,
-        estatus_sesion=estatus_sesion,
-        limite_maximo=LIMITE_SESION_MAXIMO_MINUTOS,
-        conversation_history=conversation_history,
-        user_message=user_message
+    # Calcular puntuación
+    puntuacion = 0
+    for palabra, peso in palabras_clave.items():
+        if palabra in message_lower:
+            puntuacion += peso
+    
+    # 2. Analizar contexto de la conversación
+    contexto_comercial = any(
+        any(palabra in msg['user'].lower() for palabra in [
+            'precio', 'pago', 'suscripción', 'cuanto', 'costo', 'banco',
+            'cuenta', 'transferencia', 'depósito'
+        ])
+        for msg in conversation_history[-3:]  # Últimos 3 mensajes
     )
     
-    if tiempo_transcurrido_minutos >= DURACION_SESION_NORMAL_MINUTOS:
-        prompt += f"\n\n{AVISO_CIERRE}"
+    if contexto_comercial:
+        puntuacion += 2  # Bonus por contexto
     
-    return prompt
+    # 3. Detectar preguntas directas
+    es_pregunta_directa = any(message_lower.startswith(prefix) for prefix in 
+                            ['cuanto', 'cuánto', 'cómo', 'como', 'dónde', 'donde', 'qué', 'que'])
+    
+    if es_pregunta_directa and puntuacion > 0:
+        puntuacion += 2
+    
+    print(f"🔍 Análisis de intención: '{user_message}' -> Puntuación: {puntuacion}")
+    return puntuacion >= 4  # Umbral más bajo para mejor detección
 
-def llamar_deepseek(prompt):
-    try:
-        headers = {
-            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "deepseek-chat",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.7,
-            "max_tokens": 600,  # AUMENTADO de 400 a 600
-            "stream": False
-        }
-        
-        print(f"🔍 DEBUG: Llamando a DeepSeek API...")
-        response = requests.post(DEEPSEEK_URL, headers=headers, json=data, timeout=30)
-        print(f"🔍 DEBUG: Status Code: {response.status_code}")
-        
-        if response.status_code == 200:
-            return response.json()['choices'][0]['message']['content'].strip()
-        else:
-            print(f"Error DeepSeek API: {response.status_code} - {response.text}")
-            return "Entiendo que quieres conectar. Estoy aquí para escucharte. ¿Puedes contarme más sobre cómo te sientes? 🌱"
-            
-    except Exception as e:
-        print(f"Excepción en llamar_deepseek: {str(e)}")
-        return "Veo que estás buscando apoyo. ¿Podrías contarme más sobre lo que necesitas en este momento? 💫"
+def generar_respuesta_suscripcion(user_phone):
+    """Genera respuesta personalizada según el estado del usuario"""
+    dias_restantes = dias_restantes_trial(user_phone)
+    tiene_suscripcion = verificar_suscripcion_activa(user_phone)
+    
+    if tiene_suscripcion:
+        dias_susc = dias_restantes_suscripcion(user_phone)
+        return f"""
+✅ **Tu suscripción está activa**
 
-def enviar_respuesta_crisis(telefono):
-    MENSAJE_CRISIS = """
-🚨 PROTOCOLO DE CRISIS 🚨
-Veo que estás pasando por un momento muy difícil. 
-Como Alma no puedo brindar atención en crisis, 
-te recomiendo contactar **inmediatamente**:
+📅 Días restantes: {dias_susc} días
 
-🏙️ **EN QUERÉTARO:**
-📞 **Línea de la Vida Querétaro:** 800 008 1100
-🏥 **Centro de Atención Psicológica UAQ:** 442 192 1200 Ext. 6305
-
-📱 **LÍNEAS NACIONALES 24/7:**
-🆘 **Línea de la Vida:** 800 911 2001
-💙 **SAPTEL:** 55 5259 8121
-🚑 **Urgencias:** 911
-
-**No estás solo. Por favor busca ayuda profesional inmediata.**
-Recuerda que hay personas que se preocupan por ti.
-Te espero en este tu espacio cuando te sientas mejor o quieras seguir hablando.🌱
+¿En qué más puedo ayudarte? 🌱
 """
-    return enviar_respuesta_twilio(MENSAJE_CRISIS, telefono)
+    elif dias_restantes > 0:
+        return f"""
+💫 **Información de Suscripción**
+
+Actualmente tienes **{dias_restantes} días** de prueba gratuita restantes.
+
+{MENSAJE_SUSCRIPCION}
+"""
+    else:
+        return MENSAJE_SUSCRIPCION
 
 def manejar_comando_suscripcion(user_phone, user_message, conversation_history):
     """Sistema unificado de detección de intención comercial"""
@@ -737,75 +730,84 @@ def manejar_comando_suscripcion(user_phone, user_message, conversation_history):
     
     return None
 
-def analizar_intencion_comercial(user_message, conversation_history):
-    """Análisis más inteligente que considera contexto"""
-    message_lower = user_message.lower().strip()
+def construir_prompt_alma(user_message, user_session, user_phone):
+    tiempo_transcurrido_minutos = int((datetime.now().timestamp() - user_session['session_start_time']) / 60)
     
-    # 1. Detectar palabras clave con ponderación (AGREGAR GRATUIDAD)
-    palabras_clave = {
-        'cuanto': 3, 'cuánto': 3, 'precio': 3, 'costo': 3, 'valor': 2,
-        'pagar': 3, 'pago': 3, 'suscripción': 4, 'suscripcion': 4,
-        'cuenta': 2, 'banco': 2, 'clabe': 3, 'transferencia': 2,
-        'depositar': 2, 'comprar': 2, 'contratar': 2, 'plan': 2,
-        'membresía': 3, 'membresia': 3, 'datos bancarios': 4,
-        'información de pago': 4, 'forma de pago': 3,
-        'abonar': 2, 'depósito': 2, 'deposito': 2, 'renovar': 2,
-        'actualizar': 2, 'registrarme': 2, 'darme de alta': 3,
-        'gratis': 3, 'gratuito': 3, 'sin costo': 4, 'sin pago': 3 
-    }
+    if tiempo_transcurrido_minutos >= LIMITE_SESION_MAXIMO_MINUTOS:
+        estatus_sesion = f"LIMITE EXCEDIDO ({LIMITE_SESION_MAXIMO_MINUTOS} MINUTOS). DEBES CERRAR INMEDIATAMENTE."
+    elif tiempo_transcurrido_minutos >= DURACION_SESION_NORMAL_MINUTOS:
+        estatus_sesion = f"CIERRE FLEXIBLE. Ya superaste los {DURACION_SESION_NORMAL_MINUTOS} minutos. Mantente en fase de cierre."
+    elif tiempo_transcurrido_minutos >= INTERVALO_RECORDATORIO_MINUTOS:
+        estatus_sesion = "AVISO DE CIERRE ENVIADO. Inicia transición a cierre."
+    else:
+        estatus_sesion = f"Sesión en curso. {DURACION_SESION_NORMAL_MINUTOS - tiempo_transcurrido_minutos} minutos restantes."
+        
+    conversation_history = ""
+    for msg in user_session['conversation_history'][-3:]:
+        conversation_history += f"Usuario: {msg['user']}\nAlma: {msg['alma']}\n"
     
-    # Calcular puntuación
-    puntuacion = 0
-    for palabra, peso in palabras_clave.items():
-        if palabra in message_lower:
-            puntuacion += peso
-    
-    # 2. Analizar contexto de la conversación
-    contexto_comercial = any(
-        any(palabra in msg['user'].lower() for palabra in [
-            'precio', 'pago', 'suscripción', 'cuanto', 'costo', 'banco',
-            'cuenta', 'transferencia', 'depósito'
-        ])
-        for msg in conversation_history[-3:]  # Últimos 3 mensajes
+    prompt = ALMA_PROMPT_BASE.format(
+        tiempo_transcurrido=tiempo_transcurrido_minutos,
+        estatus_sesion=estatus_sesion,
+        limite_maximo=LIMITE_SESION_MAXIMO_MINUTOS,
+        conversation_history=conversation_history,
+        user_message=user_message
     )
     
-    if contexto_comercial:
-        puntuacion += 2  # Bonus por contexto
+    if tiempo_transcurrido_minutos >= DURACION_SESION_NORMAL_MINUTOS:
+        prompt += f"\n\n{AVISO_CIERRE}"
     
-    # 3. Detectar preguntas directas
-    es_pregunta_directa = any(message_lower.startswith(prefix) for prefix in 
-                            ['cuanto', 'cuánto', 'cómo', 'como', 'dónde', 'donde', 'qué', 'que'])
-    
-    if es_pregunta_directa and puntuacion > 0:
-        puntuacion += 2
-    
-    print(f"🔍 Análisis de intención: '{user_message}' -> Puntuación: {puntuacion}")
-    return puntuacion >= 4  # Umbral más bajo para mejor detección
+    return prompt
 
-def generar_respuesta_suscripcion(user_phone):
-    """Genera respuesta personalizada según el estado del usuario"""
-    dias_restantes = dias_restantes_trial(user_phone)
-    tiene_suscripcion = verificar_suscripcion_activa(user_phone)
-    
-    if tiene_suscripcion:
-        dias_susc = dias_restantes_suscripcion(user_phone)
-        return f"""
-✅ **Tu suscripción está activa**
+def llamar_deepseek(prompt):
+    try:
+        headers = {
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        data = {
+            "model": "deepseek-chat",
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.7,
+            "max_tokens": 600,
+            "stream": False
+        }
+        
+        print(f"🔍 DEBUG: Llamando a DeepSeek API...")
+        response = requests.post(DEEPSEEK_URL, headers=headers, json=data, timeout=30)
+        print(f"🔍 DEBUG: Status Code: {response.status_code}")
+        
+        if response.status_code == 200:
+            return response.json()['choices'][0]['message']['content'].strip()
+        else:
+            print(f"Error DeepSeek API: {response.status_code} - {response.text}")
+            return "Entiendo que quieres conectar. Estoy aquí para escucharte. ¿Puedes contarme más sobre cómo te sientes? 🌱"
+            
+    except Exception as e:
+        print(f"Excepción en llamar_deepseek: {str(e)}")
+        return "Veo que estás buscando apoyo. ¿Podrías contarme más sobre lo que necesitas en este momento? 💫"
 
-📅 Días restantes: {dias_susc} días
+def enviar_respuesta_crisis(telefono):
+    MENSAJE_CRISIS = """
+🚨 PROTOCOLO DE CRISIS 🚨
+Veo que estás pasando por un momento muy difícil. 
+Como Alma no puedo brindar atención en crisis, 
+te recomiendo contactar **inmediatamente**:
 
-¿En qué más puedo ayudarte? 🌱
+🏙️ **EN QUERÉTARO:**
+📞 **Línea de la Vida Querétaro:** 800 008 1100
+🏥 **Centro de Atención Psicológica UAQ:** 442 192 1200 Ext. 6305
+
+📱 **LÍNEAS NACIONALES 24/7:**
+🆘 **Línea de la Vida:** 800 911 2001
+💙 **SAPTEL:** 55 5259 8121
+🚑 **Urgencias:** 911
+
+**No estás solo. Por favor busca ayuda profesional inmediata.**
+Recuerda que hay personas que se preocupan por ti.
+Te espero en este tu espacio cuando te sientas mejor o quieras seguir hablando.🌱
 """
-    elif dias_restantes > 0:
-        return f"""
-💫 **Información de Suscripción**
-
-Actualmente tienes **{dias_restantes} días** de prueba gratuita restantes.
-
-{MENSAJE_SUSCRIPCION}
-"""
-    else:
-        return MENSAJE_SUSCRIPCION
+    return enviar_respuesta_twilio(MENSAJE_CRISIS, telefono)
 
 # ✅ LIMPIEZA MEJORADA - AHORA SOLO LIMPIA MEMORIA TEMPORAL
 def ejecutar_limpieza_automatica():
@@ -863,7 +865,7 @@ def webhook():
         respuesta_suscripcion = manejar_comando_suscripcion(
             user_phone, 
             user_message, 
-            session['conversation_history']  # ← AGREGAR ESTE PARÁMETRO
+            session['conversation_history']
         )
         if respuesta_suscripcion:
             return enviar_respuesta_twilio(respuesta_suscripcion, user_phone)
@@ -1035,6 +1037,8 @@ if __name__ == '__main__':
     print("   ✅ Recordatorios menos invasivos (45-50 min)")
     print("   ✅ 600 tokens para respuestas más completas")
     print("   ✅ Políticas de privacidad actualizadas")
+    print("   ✅ Detección inteligente de suscripción")
+    print("   ✅ Lenguaje neutro para todos los usuarios")
     
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
